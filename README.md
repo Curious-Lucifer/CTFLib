@@ -5,7 +5,6 @@ pip :
 ```
 gmpy2
 pycryptodome
-factordb-pycli
 ```
 apt :
 ```

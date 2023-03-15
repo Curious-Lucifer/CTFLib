@@ -3,8 +3,8 @@ from gmpy2 import iroot
 from sage.all import var, Integer, NonNegativeIntegerSemiring, Zmod, PolynomialRing, IntegerRing, ceil, floor
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from Crypto.PublicKey import RSA
-from factordb.factordb import FactorDB
 from .Utils import crt, ceil_int, floor_int
+import requests
 
 
 # input : p(int), q(int), e(int), c(int)
@@ -257,6 +257,6 @@ def pem2key(pem_filename: str):
 # input : n(int)
 # output : factor_list(list[int])
 def factor_online(n: int):
-    f = FactorDB(n)
-    f.connect()
-    return f.get_factor_list()
+    url = 'http://factordb.com/api'
+    result = requests.get(url, params={"query": str(n)}).json()['factors']
+    return sum([[int(factor)] * time  for factor, time in result], [])

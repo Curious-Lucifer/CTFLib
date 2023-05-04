@@ -1,262 +1,317 @@
 from math import gcd
-from gmpy2 import iroot
-from sage.all import var, Integer, NonNegativeIntegerSemiring, Zmod, PolynomialRing, IntegerRing, ceil, floor
-from Crypto.Util.number import long_to_bytes, bytes_to_long
+from gmpy2 import iroot, isqrt
+from sage.all import Integer, PolynomialRing, Zmod, IntegerRing
 from Crypto.PublicKey import RSA
-from .Utils import crt, ceil_int, floor_int
+from tqdm import trange
+from .Utils import ceil_int, floor_int
 import requests
 
 
-# input : p(int), q(int), e(int), c(int)
-# output : m(int)
-def simple_decrypt(p: int,q: int,e: int,c: int):
-    d = pow(e, -1, (p - 1) * (q - 1))
-    return pow(c, d, p * q)
+def pem2key(pem_filename: str):
+    """
+    - input : `pem_filename (str)`
+    - output : `(n, e) (int, int)`
+    """
+
+    key = RSA.importKey(open(pem_filename).read())
+    return int(key.n), int(key.e)
 
 
-# input : n(int) , n has two factor p,q and |p - q| is really small
-# output : (p, q) (int, int)
+def factor_online(n: int):
+    """
+    - input : `n (int)`
+    - output : `factor_list (list[factor1, factor2, ...])` , that `n = factor1 * factor2 * ...`
+    """
+
+    result = requests.get('http://factordb.com/api', params={'query': str(n)}).json()['factors']
+    return sum([[int(factor)] * time  for factor, time in result], [])
+
+
+def factor_n_with_d(n: int, e: int, d: int):
+    """
+    - input : `n (int)`, `e (int)`, `d (int)`
+    - output : `(p, q) (int, int)` , `p * q = n` and p, q is prime
+    """
+
+    for g in range(2, n):
+        init_pow = e * d - 1
+        while ((init_pow % 2) == 0):
+            init_pow //= 2
+            root = pow(g, init_pow, n)
+            if 1 < gcd(root - 1, n) < n:
+                p = gcd(root - 1, n)
+                q = n // p
+                return p, q
+            if root == (n - 1):
+                break
+
+
 def fermat_factor(n: int):
-    i = 1
-    while True:
-        if iroot(n + i**2,2)[1]:
-            a = int(iroot(n + i**2,2)[0])
-            return (a + i,a - i)
-        i += 1
+    """
+    - input : `n (int)`
+    - output : `(p, q) (int, int)`
+    """
+
+    a = int(isqrt(n)) + 1
+    b = iroot(a ** 2 - n, 2)
+    while not b[1]:
+        a += 1
+        b = iroot(a ** 2 - n, 2)
+        print(a)
+    b = int(b[0])
+    return (a - b), (a + b)
 
 
-# input : n(int) , n has a factor p that (p - 1)'s large prime factor is really small
-# output : p(int) , a factor of n
 def pollard_algorithm(n: int):
+    """
+    - input : `n (int)` , n has a factor p that (p - 1)'s large prime factor is really small
+    - output : `(p, q) (int, int)` , n's factors
+    """
+
     a = 2
     b = 2
     while True:
         a = int(pow(a,b,n))
         p = int(gcd(a - 1,n))
         if 1 < p < n:
-            return p
+            return p, n // p
         b += 1
 
 
-# input : e(int), c_list(list of int), n_list(list of int) , assum m^e < n1 * n2 * ... , c_list = [c1, c2, ...], n_list = [n1, n2, ...]
-#         m^e ≡ c1 (mod n1)
-#         m^e ≡ c2 (mod n2)
-#         ...
-# output : m(int)
-def boardcast_attack(e: int, c_list: list, n_list: list):
-    return int(iroot(crt(c_list,n_list),e)[0])
+def william_algorithm(n: int, B: int=None):
+    """
+    - input : `n (int)`, `B (int, default None)` , B is the upper bound of (p + 1)'s max prime factor
+    - output : `(p, q) (int, int)` , `p * q = n`
+    """
+
+    prime_list = [3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101]
+    
+    def mlucas(a: int, k: int):
+        """
+        - input : `a (int)`, `k (int)`, `n (int)`
+        - output : `v1 (int)` , return V_k(a, 1)
+        """
+
+        # Init : v1, v2 = V[1], V[2]
+        # General : v1, v2 = V[i], V[i + 1]
+        v1, v2 = a % n, (a ** 2 - 2) % n
+        for bit in bin(k)[3:]:
+            if bit == '1':
+                # v1, v2 = V[2i + 1], V[2i + 2]
+                v1, v2 = (v1 * v2 - a) % n, (v2 ** 2 - 2) % n
+            else:
+                # v1, v2 = V[2i], V[2i + 1]
+                v1, v2 = (v1 ** 2 - 2) % n, (v1 * v2 - a) % n
+        return v1
+    
+    B = B or int(isqrt(n))
+    for A in prime_list:
+        v = A
+        for i in trange(1, B + 1, desc=f'A = {A}'):
+            v = mlucas(v, i)
+            p = gcd(v - 2, n)
+            if n > p > 1:
+                return p, n // p
 
 
-# input : n(int), e(int), c(int) , this attack assume d < (1 / 3) * (n ^ (1 / 4))
-# output : m(int)
-def wiener_attack(n: int, e: int, c: int):
-    y = var('y')
-    seq_of_continued_fraction = (Integer(e)/Integer(n)).continued_fraction()
-    for i in range(2,len(seq_of_continued_fraction)):
-        ci = seq_of_continued_fraction.convergent(i)
-        print(ci)
-        k_test = ci.numerator()
-        d_test = ci.denominator()
-        b = (e*d_test - 1)/k_test - n - 1
-        p_test = (y**2 + b*y + n).roots()[1][0]
-        if (p_test in NonNegativeIntegerSemiring()) and (n % int(p_test) == 0):
-            d = int(d_test)
-            break
-    return int(pow(c, d, n))
+def wiener_attack(n: int, e: int):
+    """
+    - input : `n (int)`, `e (int)`
+    - output : `(p, q, d) (int, int, int)`
+    """
+
+    continued_fraction_list = (Integer(e) / Integer(n)).continued_fraction()
+    for i in range(2, len(continued_fraction_list)):
+        cf = continued_fraction_list.convergent(i)
+        k = cf.numerator()
+        d = cf.denominator()
+        if ((e * d - 1) % k) != 0:
+            continue
+        b = (e * d - 1) // k - n - 1
+        D = iroot(int(b ** 2 - 4 * n), 2)
+        if not D[1]:
+            continue
+        p, q = ((-int(b) + int(D[0])) // 2), ((-int(b) - int(D[0])) // 2)
+        if p * q == n:
+            return p, q, int(d)
 
 
-# input n(int),e(int), c(int), oralce(func), r(pwn tubes)
-# output m(int)
-# oracle func : input : c(int), r(pwn tubes)
-#               output : last_m(int) , the last bit of m
-def LSB_oracle_attack(n: int, e: int, c: int, oracle, r):
-    mul_const = pow(2,e,n)
-    seq = [Integer(0),Integer(n),c]
-    while (ceil(seq[1]) - ceil(seq[0])) > 1:
-        print(ceil(seq[0]),ceil(seq[1]))
-        seq[2] = (seq[2] * mul_const) % n
-        last_m = oracle(seq[2],r)
-        if (last_m == 1):
-            seq[0] = (seq[0] + seq[1]) / 2
-        else:
-            seq[1] = (seq[0] + seq[1]) / 2
-    return int(ceil(seq[0]))
+def LSB_oracle_attack(n: int, e: int, c: int, oracle, r, m_bitlength: int = None):
+    """
+    - input : `n (int)`, `e (int)`, `c (int)`, `oracle (func)`, `r (remote object)`, `m_bitlength (int, default = None)`
+    - output : `m (int)`
+    - oracle func : 
+        - input : `c (int)`, `r (remote object)`
+        - output : `lbit (int)` , {0, 1}, last bit of `m` (`c`'s plain)
+    """
+
+    m_bitlength = m_bitlength or n.bit_length()
+    multiple_const = pow(2, e, n)
+    m_bitlist = []
+    for i in trange(m_bitlength):
+        new_c = (pow(multiple_const, -i, n) * c) % n
+        bit = (oracle(new_c, r) - (sum((pow(2, - i + j, n) * m_bitlist[j] % n) for j in range(i)) % n)) % 2
+        m_bitlist.append(bit)
+
+    return int(''.join(str(bit) for bit in reversed(m_bitlist)), base=2)
 
 
-# input : lower_bound(int), n(int), e(int), c(int), oracle(func)
-# output : s(int) , this is for bleichenbacher 1998's step 2.a , step 2.b
-def bleichenbacher_orifind_s(lower_bound: int, n: int, e: int, c: int, oracle):
-    s = lower_bound
-    while True:
-        test_c = (pow(s, e, n) * c) % n
-        if oracle(test_c):
-            return s
-        s += 1
+def bleichenbacher_1998(n: int, e: int, c: int, oracle, r):
+    """
+    - input : `n (int)`, `e (int)`, `c (int)`, `oracle (func)`, `r (remote object)`
+    - output : `m (int)` , `e`'s plain
+    - oracle func : 
+        - input : `c (int)`, `r (remote object)`
+        - output : `PKCS_conforming (bool)` , is `c` PKCS conforming
+    """
 
+    assert oracle(c, r)
+    B = 1 << (n.bit_length() // 8 - 1) * 8
 
-# input : prev_s(int), M([[a1(int), b1(int)], [a2(int), b2(int)], ...]), B(int), n(int), e(int), c(int), oracle(func)
-# output : s(int) , this is for bleichenbacher 1998's step 2.c
-def bleichenbacher_optfind_s(prev_s: int, M, B: int, n: int, e: int, c: int, oracle):
-    a = M[0][0]
-    b = M[0][1]
-    ri = ceil_int((b * prev_s - 2 * B) * 2, n)
-    while True:
-        low_bound = ceil_int(2 * B + ri * n, b)
-        high_bound = ceil_int(3 * B + ri * n, a)
-        for s in range(low_bound,high_bound):
-            new_c = (pow(s, e, n) * c) % n
-            if oracle(new_c):
-                return s
-        ri += 1
+    def bleichenbacher_orifind_s(lower_bound: int):
+        si = lower_bound
+        while True:
+            new_c = (pow(si, e, n) * c) % n
+            if oracle(new_c, r):
+                return si
+            si += 1
 
+    def bleichenbacher_optfind_s(prev_s: int, a: int, b: int):
+        ri = ceil_int(2 * (b * prev_s - 2 * B), n)
+        while True:
+            low_bound = ceil_int(2 * B + ri * n, b)
+            high_bound = ceil_int(3 * B + ri * n, a)
+            for si in range(low_bound, high_bound):
+                new_c = (pow(si, e, n) * c) % n
+                if oracle(new_c, r):
+                    return si
+            ri += 1
 
-# input : s(int), M([[a1(int), b1(int)], [a2(int), b2(int)], ...]), B(int), n(int)
-# output : M([[a1(int), b1(int)], [a2(int), b2(int)], ...]) , this is for bleichenbacher 1998's step 3
-def bleichenbacher_merge_M(s: int, M, B: int, n: int):
-    new_M = []
-    for [a, b] in M:
-        k1 = ceil_int(a * s - 3 * B + 1, n)
-        k2 = floor_int(b * s - 2 * B, n) + 1
-        for k in range(k1,k2):
-            aa = max(a, ceil_int(2 * B + k * n, s))
-            bb = min(b, floor_int(3 * B - 1 + k * n, s))
-            if bb >= aa:
-                new_M.append([aa, bb])
-    return new_M
+    def bleichenbacher_merge_M(si: int, M: list):
+        new_M = []
+        for [a, b] in M:
+            r_low = ceil_int(a * si - 3 * B + 1, n)
+            r_high = floor_int(b * si - 2 * B, n) + 1
+            for ri in range(r_low, r_high):
+                interval_low = max(a, ceil_int(2 * B + ri * n, si))
+                interval_high = min(b, floor_int(3 * B + ri * n - 1, si))
+                if interval_high >= interval_low:
+                    new_M.append([interval_low, interval_high])
+        return new_M
 
-
-# input : n(int), e(int), c(int), size(int), oracle(func)
-# output : m(int)
-def bleichenbacher_1998(n: int, e: int, c: int, size: int, oracle):
-    assert oracle(c)
-
-    B = bytes_to_long(b'\x01' + b'\x00' * (size - 2))
-    s = bleichenbacher_orifind_s(ceil_int(n, 3 * B), n, e, c, oracle)
-    M = bleichenbacher_merge_M(s, [[2 * B, 3 * B - 1]], B, n)
+    s = bleichenbacher_orifind_s(ceil_int(n, 3 * B))
+    M = bleichenbacher_merge_M(s, [[2 * B, 3 * B - 1]])
     print(s, M)
 
     while True:
         if len(M) > 1:
-            s = bleichenbacher_orifind_s(s + 1, n, e, c, oracle)
+            s = bleichenbacher_orifind_s(s + 1)
         else:
             if M[0][0] == M[0][1]:
                 return M[0][0]
-            s = bleichenbacher_optfind_s(s, M, B, n, e, c, oracle)
-        M = bleichenbacher_merge_M(s, M, B, n)
+            s = bleichenbacher_optfind_s(s, M[0][0], M[0][1])
+        M = bleichenbacher_merge_M(s, M)
         print(s, M)
 
 
-# input : beta(any numeric type), delta(int, f's degree), epsilon(any numeric type, < beta / 7), n(int), f(polynomial of x mod N)
-# output : smallroot(int) , root of f(x) ≡ 0 (mod b), if there's no than return -1
-def coppersmith_method(beta, delta: int, epsilon, n: int, f):
-    n = Integer(n)
-    X = ceil(n ** (beta ** 2 / (delta) - epsilon))
-    smallroot = f.small_roots(X, beta, epsilon)
-    try:
-        smallroot = smallroot[0]
-    except:
+def stereotyped_message(n: int, e: int, c: int, m0: int, epsilon=None):
+    """
+    - input : `n (int)`, `e (int)`, `c (int)`, `m0 (int)`, `epsilon (default=None)` , `0 < epsilon <= 1/7`
+    - output : `m (int)` , `c`'s plain. if there's no solve, return `-1`
+    """
+    P = PolynomialRing(Zmod(n), implementation='NTL', names=('x',))
+    x = P._first_ngens(1)[0]
+
+    f = (m0 + x) ** e - c
+    small_roots = f.small_roots(epsilon=epsilon)
+    if len(small_roots) > 0:
+        return int(small_roots[0]) + m0
+    else:
         return -1
-    return int(smallroot)
 
 
-# input : mbar(int), c(int), e(int), n(int), epsilong(optional, default is 1 / Integer(8))
-# output : x0(int) , m = mbar + x0
-def stereotyped_message(mbar: int, c: int, e: int, n: int, epsilon = 1 / Integer(8)):
-    mbar = Integer(mbar)
-    c = Integer(c)
-    e = Integer(e)
-    n = Integer(n)
-
-    Z = PolynomialRing(Zmod(n),implementation='NTL', names=('x',)); (x,) = Z._first_ngens(1)
-
-    f = (mbar + x) ** e - c
-    smallroot = coppersmith_method(1, e, epsilon, n, f)
-
-    return smallroot
-
-
-# input : n(int), pbar(int), epsilon (optional, default is 1 / Integer(16))
-# output : (p, q) (int, int)
-def known_high_bits_of_p(n: int, pbar: int, epsilon = 1 / Integer(16)):
-    n = Integer(n)
-    pbar = Integer(pbar)
-
-    Z = PolynomialRing(Zmod(n),implementation='NTL', names=('x',)); (x,) = Z._first_ngens(1)
-
-    f = pbar + x
-    smallroot = coppersmith_method(1 / Integer(2), 1, epsilon, n, f)
-
-    p = int(pbar) + smallroot
-    assert (n % p == 0)
-    q = int(n) // p
-    return (p, q)
+def known_high_bits_of_p(n: int, p0: int, epsilon=None):
+    """
+    - input : `n (int)`, `p0 (int)`, `epsilon (default=None)` , `0 < epsilon <= 0.49/7`
+    - output : `(p, q) (int, int)`
+    """
+    P = PolynomialRing(Zmod(n), implementation='NTL', names=('x',))
+    x = P._first_ngens(1)[0]
+    
+    f = p0 + x
+    small_roots = f.small_roots(beta=0.49, epsilon=epsilon)
+    if len(small_roots) > 0:
+        p = p0 + int(small_roots[0])
+        q = n // p
+        assert p * q == n
+        return p, q
+    else:
+        return -1
 
 
-# input : f1(polynomial) , f2(polynomial)
-# output : gcd(f1, f2) (polynomial)
-def polynomialgcd(f1,f2):
-    Z = PolynomialRing(IntegerRing(), names=('x',)); (x,) = Z._first_ngens(1)
+def known_high_bits_of_p(n: int, p0: int, epsilon=None):
+    """
+    - input : `n (int)`, `p0 (int)`, `epsilon (default=None)` , `0 < epsilon <= 0.49/7`
+    - output : `(p, q) (int, int)`
+    """
+    P = PolynomialRing(Zmod(n), implementation='NTL', names=('x',))
+    x = P._first_ngens(1)[0]
+    
+    f = p0 + x
+    small_roots = f.small_roots(beta=0.49, epsilon=epsilon)
+    if len(small_roots) > 0:
+        p = p0 + int(small_roots[0])
+        q = n // p
+        assert p * q == n
+        return p, q
+    else:
+        return -1
 
+
+def polynomialgcd(f1, f2):
     if f2 == 0:
-        f1 = f1 / f1.coefficients()[-1]
-        return f1
+        return f1.monic()
 
     if f2.degree() > f1.degree():
         f1, f2 = f2, f1
 
-    diff = int(f1.degree() - f2.degree())
-    coe = f1.coefficients()[-1] / f2.coefficients()[-1]
-    g = f1 - f2 * coe * (x ** diff)
-    return polynomialgcd(f2,g)
+    while f2 != 0:
+        f1, f2 = f2, f1 % f2
+    
+    return f1.monic()
 
 
-# input : n(int), e(int), c1(int), c2(int), f(polynomail of x mod n)
-# output : m1(int) , f(m1) = m2
-def franklin_reiter(n: int, e: int, c1: int, c2: int, f):
-    n = Integer(n)
-    e = Integer(e)
-    c1 = Integer(c1)
-    c2 = Integer(c2)
+def franklin_reiter(e: int, c1: int, c2: int, f, x):
+    """
+    - input : `e (int)`, `c1 (int)`, `c2 (int)`, `f (polynomial of x mod n)`, `x (symbol of polynomial mod n)`
+    - output : `m1 (int)` , `f(m1) = m2`
+    """
 
-    Z = PolynomialRing(Zmod(n),implementation='NTL', names=('x',)); (x,) = Z._first_ngens(1)
-    g1 = x ** e - c1
-    g2 = f ** e - c2
-    return int(-polynomialgcd(g1, g2)[0])
+    f1 = x ** e - c1
+    f2 = f ** e - c2
+    return int(-polynomialgcd(f1, f2)[0])
 
 
-# input : n(int), c1(int), c2(int), e(int), epsilon(optional, default 1 / Integer(8))
-# output : m1(int)
-def coppersmith_short_pad_attack(n: int, c1: int, c2: int, e: int, epsilon = 1 / Integer(8)):
-    n = Integer(n)
-    c1 = Integer(c1)
-    c2 = Integer(c2)
-    ZmodN = Zmod(n)
+def coppersmith_short_pad_attack(n: int, e: int, c1: int, c2: int, epsilon=None):
+    """
+    - input : `n (int)`, `e (int)`, `c1 (int)`, `c2 (int)`, `epsilon (default=None)` , `0 < epsilon <= 1/7`
+    - output : `m1 (int)` , `c1`'s plain
+    """
 
-    Z = PolynomialRing(IntegerRing(), names=('x', 'y',)); (x, y,) = Z._first_ngens(2)
-    g1 = x**e - c1
-    g2 = (x + y)**e - c2
-    h = g1.resultant(g2,x)
-    h = h.univariate_polynomial()
-    h = h.change_ring(ZmodN)
-    diff = h.small_roots(epsilon=epsilon)[0]
+    P2 = PolynomialRing(IntegerRing(), names=('x', 'y',)); (x, y,) = P2._first_ngens(2)
 
-    Z = PolynomialRing(ZmodN, names=('x',)); (x,) = Z._first_ngens(1)
+    f1 = x ** e - c1
+    f2 = (x + y) ** e - c2
+    h = f1.resultant(f2, x).univariate_polynomial().change_ring(Zmod(n))
+    small_roots = h.small_roots(epsilon=epsilon)
+    if len(small_roots) > 0:
+        diff = h.small_roots(epsilon=epsilon)[0]
+    else:
+        return -1
+
+    P = PolynomialRing(Zmod(n), implementation='NTL', names=('x',))
+    x = P._first_ngens(1)[0]
+
     f = x + diff
-    m1 = franklin_reiter(n, e, c1, c2, f)
+    return franklin_reiter(e, c1, c2, f, x)
 
-    return m1
-
-
-# input : pem_filename(str)
-# output : n(int), e(int)
-def pem2key(pem_filename: str):
-    key = RSA.importKey(open(pem_filename).read())
-    return int(key.n),int(key.e)
-
-
-# input : n(int)
-# output : factor_list(list[int])
-def factor_online(n: int):
-    url = 'http://factordb.com/api'
-    result = requests.get(url, params={"query": str(n)}).json()['factors']
-    return sum([[int(factor)] * time  for factor, time in result], [])

@@ -55,7 +55,7 @@ class GCM_Forbidden_Attack:
     x = P._first_ngens(1)[0]
 
 
-    def __init__(self, AAD_list: list[bytes], cipher_list: list[bytes], auth_tag_list: list[bytes]):
+    def __init__(self, AAD_list: list[bytes]=[], cipher_list: list[bytes]=[], auth_tag_list: list[bytes]=[]):
         """
         - input
             - `AAD_list (list[bytes], [AAD1, AAD2, ...])`

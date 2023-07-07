@@ -128,6 +128,8 @@ def wiener_attack(n: int, e: int):
         if ((e * d - 1) % k) != 0:
             continue
         b = (e * d - 1) // k - n - 1
+        if (b ** 2 - 4 * n) < 0:
+            continue
         D = iroot(int(b ** 2 - 4 * n), 2)
         if not D[1]:
             continue

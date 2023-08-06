@@ -4,7 +4,7 @@ from string import ascii_lowercase
 def simple_freq_analysis(msg: str):
     """
     - input : `msg (str)`
-    - output : `deviation (int)` , more close to 0 the `msg` is more likely to be English
+    - output : `deviation (int)` , more close to 0 `msg` is more likely to be English
     """
 
     msg = list(msg.lower())

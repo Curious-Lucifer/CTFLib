@@ -1,14 +1,14 @@
-from .Utils import *
+from .Utils import xor
 from sage.all import var, GF, PolynomialRing
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 
-def padding_oracle_attack(pre_cipher_block: bytes, cipher_block: bytes, oracle, r):
+def padding_oracle_attack(pre_cipher_block: bytes, cipher_block: bytes, oracle):
     '''
-    - input : `pre_cipher_block (bytes)`, `cipher_block (bytes)`, `oracle (func)`, `r (remote object)`
+    - input : `pre_cipher_block (bytes)`, `cipher_block (bytes)`, `oracle (func)`
     - output : `plain_block (bytes)` , cipher_block's plaintext
     - oracle func : 
-        - input : `cipher (bytes)`, `r (remote object)`
+        - input : `cipher (bytes)`
         - output : `padding_right (bool)` , represent if the padding of cipher's plaintext is right
     '''
 
@@ -17,7 +17,7 @@ def padding_oracle_attack(pre_cipher_block: bytes, cipher_block: bytes, oracle, 
     last_bytes = []
     for i in range(256):
         cipher_test = pre_cipher_block[:15] + bytes([i]) + cipher_block
-        if oracle(cipher_test, r):
+        if oracle(cipher_test):
             last_bytes.append(bytes([i]))
     if len(last_bytes) == 1:
         plain_block = xor(last_bytes[0], b'\x01', pre_cipher_block[-1:])
@@ -28,7 +28,7 @@ def padding_oracle_attack(pre_cipher_block: bytes, cipher_block: bytes, oracle, 
     for j in range(1,16):
         for i in range(256):
             cipher_test = pre_cipher_block[:15 - j] + bytes([i]) + xor(pre_cipher_block[-j:], plain_block, bytes([j + 1]) * j) + cipher_block
-            if oracle(cipher_test, r):
+            if oracle(cipher_test):
                 plain_block = xor(bytes([i]), bytes([j + 1]), pre_cipher_block[-j - 1:-j]) + plain_block
                 break
         print(str(plain_block), end='\r')
@@ -183,3 +183,4 @@ class GCM_Forbidden_Attack:
         auth_tag_poly += cls.bytes2polynomial(EJ0)
 
         return cls.polynomial2bytes(auth_tag_poly)
+

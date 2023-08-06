@@ -1,5 +1,6 @@
 from functools import reduce
 from math import gcd
+from .Utils import un_bitshift_left_xor_mask, un_bitshift_right_xor
 
 
 def lcg_attack(state: list[int]):
@@ -18,70 +19,33 @@ def lcg_attack(state: list[int]):
     return int(m), int(inc), N
 
 
-def MT19937_attack(rand_list: list[int], n: int):
+def MT19937_rand2state(value: int):
     """
-    - input : `rand_list (list[int])`, `n (int)` , `rand_list` is the first 624's 32 bits random number's list
-    - output : `random_num (int)` , the `n`'s random number, if `n == 0`, `random_num = rand_list[0]`
+    - input : `value (int)`
+    - output : `value (int)` , for MT19937
     """
 
-    def un_bitshift_right_xor(value: int, shift: int):
-        """
-        - input : `value (int)`, `shift (int)`
-        - output : `result (int)` , `value = (result >> shift) ^ result`
-        """
-
-        i = 0
-        result = 0
-        while ((i * shift) < 32):
-            partmask = int('1' * shift + '0' * (32 - shift), base = 2) >> (shift * i)
-            part = value & partmask
-            value ^= (part >> shift)
-            result |= part
-            i += 1
-        return result
-
-    def un_bitshift_left_xor_mask(value: int, shift: int, mask: int):
-        """
-        - input : `value (int)`, `shift (int)`, `mask (int)`
-        - output : `result (int)` , `value = ((result << shift) & mask) ^ result`
-        """
-
-        i = 0
-        result = 0
-        while ((i * shift) < 32):
-            partmask = int('0' * (32 - shift) + '1' * shift, base = 2) << (shift * i)
-            part = value & partmask
-            value ^= (part << shift) & mask
-            result |= part
-            i += 1
-        return result
-
-    def rand_to_state(value: int):
-        """
-        - input : `value (int)`
-        - output : `value (int)` , for MT19937
-        """
-
-        value = un_bitshift_right_xor(value, 18)
-        value = un_bitshift_left_xor_mask(value, 15, 0xefc60000)
-        value = un_bitshift_left_xor_mask(value, 7, 0x9d2c5680)
-        value = un_bitshift_right_xor(value, 11)
-        return value
-
-    def state_to_rand(value: int):
-        """
-        - input : `value (int)`
-        - output : `value (int)` , for MT19937
-        """
-
-        value ^= (value >> 11)
-        value ^= (value << 7) & 0x9d2c5680
-        value ^= (value << 15) & 0xefc60000
-        value ^= (value >> 18)
-        return value
+    value = un_bitshift_right_xor(value, 18)
+    value = un_bitshift_left_xor_mask(value, 15, 0xefc60000)
+    value = un_bitshift_left_xor_mask(value, 7, 0x9d2c5680)
+    value = un_bitshift_right_xor(value, 11)
+    return value
 
 
-    def gen_next_state(state: list[int]):
+def MT19937_state2rand(value: int):
+    """
+    - input : `value (int)`
+    - output : `value (int)` , for MT19937
+    """
+
+    value ^= (value >> 11)
+    value ^= (value << 7) & 0x9d2c5680
+    value ^= (value << 15) & 0xefc60000
+    value ^= (value >> 18)
+    return value
+
+
+def MT19937_gen_next_state(state: list[int]):
         """
         - input : `state (list[int])` , `state` will be changed to next state
         - output : None
@@ -96,11 +60,18 @@ def MT19937_attack(rand_list: list[int], n: int):
                 next ^= 0x9908b0df
             state[i] = next
 
+
+def MT19937_attack(rand_list: list[int], n: int):
+    """
+    - input : `rand_list (list[int])`, `n (int)` , `rand_list` is the first 624's 32 bits random number's list
+    - output : `random_num (int)` , the `n`'s random number, if `n == 0`, `random_num = rand_list[0]`
+    """
+
     if n < 624:
         return rand_list[n]
 
-    state = [rand_to_state(r) for r in rand_list]
+    state = [MT19937_rand2state(r) for r in rand_list]
     for _ in range(n // 624):
-        gen_next_state(state)
+        MT19937_gen_next_state(state)
+    return MT19937_state2rand(state[n % 624])
 
-    return state_to_rand(state[n % 624])

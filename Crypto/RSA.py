@@ -3,7 +3,7 @@ from gmpy2 import iroot, isqrt
 from sage.all import Integer, PolynomialRing, Zmod, IntegerRing
 from Crypto.PublicKey import RSA
 from tqdm import trange
-from .Utils import ceil_int, floor_int
+from .Utils import ceil_int, floor_int, polynomialgcd
 import requests
 
 
@@ -71,8 +71,8 @@ def pollard_algorithm(n: int):
     a = 2
     b = 2
     while True:
-        a = int(pow(a,b,n))
-        p = int(gcd(a - 1,n))
+        a = int(pow(a, b, n))
+        p = int(gcd(a - 1, n))
         if 1 < p < n:
             return p, n // p
         b += 1
@@ -84,11 +84,9 @@ def william_algorithm(n: int, B: int=None):
     - output : `(p, q) (int, int)` , `p * q = n`
     """
 
-    prime_list = [3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101]
-    
-    def mlucas(a: int, k: int):
+    def calc_lucas(a: int, k: int):
         """
-        - input : `a (int)`, `k (int)`, `n (int)`
+        - input : `a (int)`, `k (int)`
         - output : `v1 (int)` , return V_k(a, 1)
         """
 
@@ -103,12 +101,14 @@ def william_algorithm(n: int, B: int=None):
                 # v1, v2 = V[2i], V[2i + 1]
                 v1, v2 = (v1 ** 2 - 2) % n, (v1 * v2 - a) % n
         return v1
+
+    prime_list = [3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101]
     
     B = B or int(isqrt(n))
     for A in prime_list:
         v = A
         for i in trange(1, B + 1, desc=f'A = {A}'):
-            v = mlucas(v, i)
+            v = calc_lucas(v, i)
             p = gcd(v - 2, n)
             if n > p > 1:
                 return p, n // p
@@ -128,7 +128,7 @@ def wiener_attack(n: int, e: int):
         if ((e * d - 1) % k) != 0:
             continue
         b = (e * d - 1) // k - n - 1
-        if (b ** 2 - 4 * n) < 0:
+        if (b ** 2 - 4 * n) <= 0:
             continue
         D = iroot(int(b ** 2 - 4 * n), 2)
         if not D[1]:
@@ -138,54 +138,54 @@ def wiener_attack(n: int, e: int):
             return p, q, int(d)
 
 
-def LSB_oracle_attack(n: int, e: int, c: int, oracle, r, m_bitlength: int = None):
+def LSB_oracle_attack(n: int, e: int, c: int, oracle, m_bitlength: int = None):
     """
-    - input : `n (int)`, `e (int)`, `c (int)`, `oracle (func)`, `r (remote object)`, `m_bitlength (int, default = None)`
+    - input : `n (int)`, `e (int)`, `c (int)`, `oracle (func)`, `m_bitlength (int, default = None)`
     - output : `m (int)`
     - oracle func : 
-        - input : `c (int)`, `r (remote object)`
-        - output : `lbit (int)` , {0, 1}, last bit of `m` (`c`'s plain)
+        - input : `c (int)`
+        - output : `lbit (int)` , `{0, 1}` last bit of `m` (`c`'s plain)
     """
 
     m_bitlength = m_bitlength or n.bit_length()
-    multiple_const = pow(2, e, n)
+    multiple_const = pow(2, -e, n)
     m_bitlist = []
     for i in trange(m_bitlength):
-        new_c = (pow(multiple_const, -i, n) * c) % n
-        bit = (oracle(new_c, r) - (sum((pow(2, - i + j, n) * m_bitlist[j] % n) for j in range(i)) % n)) % 2
+        new_c = (pow(multiple_const, i, n) * c) % n
+        bit = (oracle(new_c) - (sum((pow(2, - i + j, n) * m_bitlist[j] % n) for j in range(i)) % n)) % 2
         m_bitlist.append(bit)
 
     return int(''.join(str(bit) for bit in reversed(m_bitlist)), base=2)
 
 
-def bleichenbacher_1998(n: int, e: int, c: int, oracle, r):
+def bleichenbacher_1998(n: int, e: int, c: int, oracle):
     """
-    - input : `n (int)`, `e (int)`, `c (int)`, `oracle (func)`, `r (remote object)`
+    - input : `n (int)`, `e (int)`, `c (int)`, `oracle (func)` , `c` is PKCS#1 conforming
     - output : `m (int)` , `e`'s plain
     - oracle func : 
-        - input : `c (int)`, `r (remote object)`
-        - output : `PKCS_conforming (bool)` , is `c` PKCS conforming
+        - input : `c (int)`
+        - output : `PKCS_conforming (bool)` , is `c` PKCS#1 conforming
     """
 
-    assert oracle(c, r)
+    assert oracle(c)
     B = 1 << (n.bit_length() // 8 - 1) * 8
 
     def bleichenbacher_orifind_s(lower_bound: int):
         si = lower_bound
         while True:
             new_c = (pow(si, e, n) * c) % n
-            if oracle(new_c, r):
+            if oracle(new_c):
                 return si
             si += 1
 
-    def bleichenbacher_optfind_s(prev_s: int, a: int, b: int):
-        ri = ceil_int(2 * (b * prev_s - 2 * B), n)
+    def bleichenbacher_optfind_s(prev_si: int, a: int, b: int):
+        ri = ceil_int(2 * (b * prev_si - 2 * B), n)
         while True:
             low_bound = ceil_int(2 * B + ri * n, b)
             high_bound = ceil_int(3 * B + ri * n, a)
             for si in range(low_bound, high_bound):
                 new_c = (pow(si, e, n) * c) % n
-                if oracle(new_c, r):
+                if oracle(new_c):
                     return si
             ri += 1
 
@@ -234,14 +234,14 @@ def stereotyped_message(n: int, e: int, c: int, m0: int, epsilon=None):
 
 def known_high_bits_of_p(n: int, p0: int, epsilon=None):
     """
-    - input : `n (int)`, `p0 (int)`, `epsilon (default=None)` , `0 < epsilon <= 0.49/7`
+    - input : `n (int)`, `p0 (int)`, `epsilon (default=None)` , `0 < epsilon <= 0.5/7`
     - output : `(p, q) (int, int)`
     """
     P = PolynomialRing(Zmod(n), implementation='NTL', names=('x',))
     x = P._first_ngens(1)[0]
     
     f = p0 + x
-    small_roots = f.small_roots(beta=0.49, epsilon=epsilon)
+    small_roots = f.small_roots(beta=0.5, epsilon=epsilon)
     if len(small_roots) > 0:
         p = p0 + int(small_roots[0])
         q = n // p
@@ -249,38 +249,6 @@ def known_high_bits_of_p(n: int, p0: int, epsilon=None):
         return p, q
     else:
         return -1
-
-
-def known_high_bits_of_p(n: int, p0: int, epsilon=None):
-    """
-    - input : `n (int)`, `p0 (int)`, `epsilon (default=None)` , `0 < epsilon <= 0.49/7`
-    - output : `(p, q) (int, int)`
-    """
-    P = PolynomialRing(Zmod(n), implementation='NTL', names=('x',))
-    x = P._first_ngens(1)[0]
-    
-    f = p0 + x
-    small_roots = f.small_roots(beta=0.49, epsilon=epsilon)
-    if len(small_roots) > 0:
-        p = p0 + int(small_roots[0])
-        q = n // p
-        assert p * q == n
-        return p, q
-    else:
-        return -1
-
-
-def polynomialgcd(f1, f2):
-    if f2 == 0:
-        return f1.monic()
-
-    if f2.degree() > f1.degree():
-        f1, f2 = f2, f1
-
-    while f2 != 0:
-        f1, f2 = f2, f1 % f2
-    
-    return f1.monic()
 
 
 def franklin_reiter(e: int, c1: int, c2: int, f, x):
@@ -300,14 +268,15 @@ def coppersmith_short_pad_attack(n: int, e: int, c1: int, c2: int, epsilon=None)
     - output : `m1 (int)` , `c1`'s plain
     """
 
-    P2 = PolynomialRing(IntegerRing(), names=('x', 'y',)); (x, y,) = P2._first_ngens(2)
+    P2 = PolynomialRing(IntegerRing(), names=('x', 'y'))
+    (x, y) = P2._first_ngens(2)
 
     f1 = x ** e - c1
     f2 = (x + y) ** e - c2
     h = f1.resultant(f2, x).univariate_polynomial().change_ring(Zmod(n))
     small_roots = h.small_roots(epsilon=epsilon)
     if len(small_roots) > 0:
-        diff = h.small_roots(epsilon=epsilon)[0]
+        diff = small_roots[0]
     else:
         return -1
 

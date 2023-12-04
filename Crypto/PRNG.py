@@ -1,6 +1,17 @@
+from sage.all import GF
+from sage.matrix.berlekamp_massey import berlekamp_massey
 from functools import reduce
 from math import gcd
 from .Utils import un_bitshift_left_xor_mask, un_bitshift_right_xor
+
+
+def lcg_next(s: int, m: int, inc: int, N: int):
+    """
+    - input : `s (int)`, `m (int)`, `inc (int)`, `N (int)`
+    - output : `s_next (int)` , `s_next = (m * s + inc) % N`
+    """
+    
+    return (m * s + inc) % N
 
 
 def lcg_attack(state: list[int]):
@@ -17,6 +28,23 @@ def lcg_attack(state: list[int]):
     inc = (state[1] - state[0] * m) % N
 
     return int(m), int(inc), N
+
+
+def lfsr_attack(lfsr_list: list[int], register_length: int, length: int):
+    """
+    - input : `lfsr_list (list[int])`, `register_length (int)`, `length (int)` , `len(lfsr_list) > register_length`
+    - output : `lfsr_list (list[int])` , `len(lfsr_list) == length`
+    """
+
+    G = GF(2)
+    lfsr_list = [G(num) for num in lfsr_list]
+    coefficient_list = berlekamp_massey(lfsr_list).list()[:-1]
+    coefficient_list_length = len(coefficient_list)
+
+    lfsr_list = lfsr_list[:register_length]
+    for _ in range(length - register_length):
+        lfsr_list.append(sum([lfsr_list[-coefficient_list_length + i] * coefficient_list[i] for i in range(coefficient_list_length)]))
+    return [int(num) for num in lfsr_list]
 
 
 def MT19937_rand2state(value: int):

@@ -161,7 +161,7 @@ def LSB_oracle_attack(n: int, e: int, c: int, oracle, m_bitlength: int = None):
 def bleichenbacher_1998(n: int, e: int, c: int, oracle):
     """
     - input : `n (int)`, `e (int)`, `c (int)`, `oracle (func)` , `c` is PKCS#1 conforming
-    - output : `m (int)` , `e`'s plain
+    - output : `m (int)` , `c`'s plain
     - oracle func : 
         - input : `c (int)`
         - output : `PKCS_conforming (bool)` , is `c` PKCS#1 conforming

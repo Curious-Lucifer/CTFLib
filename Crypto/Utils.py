@@ -44,18 +44,6 @@ def crt(ai_list: list[int], mi_list: list[int]):
     return sum(ai * ti * Mi for ai, ti, Mi in zip(ai_list, ti_list, Mi_list)) % M
 
 
-def generate_lcg(seed: int, m: int, inc: int, N: int, num: int):
-    """
-    - input : `seed (int)`, `m (int)`, `inc (int)`, `N (int)`, `num (int)` , `state[i] = (m * state[i - 1] + inc) % N`
-    - output : `s (int)` , `seed = state[0]` , `s = state[num]`
-    """
-
-    s = seed
-    for _ in range(num):
-        s = (m * s + inc) % N
-    return s
-
-
 def legendre_symbol(a: int, p: int):
     """
     - input : `a (int)`, `p (int)`

@@ -1,5 +1,7 @@
 from pwn import *
 from Crypto.Util.number import *
+from tqdm import trange
+from gmpy2 import iroot
 
 context.arch = 'amd64'
 context.terminal = ['tmux', 'splitw', '-h']

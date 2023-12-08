@@ -7,13 +7,16 @@ context.arch = 'amd64'
 context.terminal = ['tmux', 'splitw', '-h']
 
 
-def local(binary: str, libc: str):
+def local(binary: str, libc: str = None):
     """
     - input : `binary (str)`, `libc (str)`
     - output : `r (remote object)`
     """
 
-    return process(binary, env={'LD_PRELOAD': libc})
+    if libc:
+        return process(binary, env={'LD_PRELOAD': libc})
+    else:
+        return process(binary)
 
 
 def nc(command: str):

@@ -1,5 +1,4 @@
-from .Utils import xor
-from sage.all import var, GF, PolynomialRing
+from .Utils import *
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 

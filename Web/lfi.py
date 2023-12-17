@@ -1,4 +1,29 @@
-import base64
+from bs4 import BeautifulSoup
+import base64, re
+
+
+def phpinfo2phpvar(html: str):
+    """
+    - input : `html (str)`
+    - output : `phpvar (dict)`
+    """
+
+    soup = BeautifulSoup(html, "html.parser")
+    res = {'GET': {}, 'POST': {}, 'FILES': {}}
+    for element in soup.find_all('td', string=re.compile(r'\$_GET')):
+        parent = element.parent
+        key, val = re.findall(r'\$_GET\[\'(.*?)\'\]', element.string)[0], parent.find('td', class_='v').string
+        res['GET'][key] = val
+    for element in soup.find_all('td', string=re.compile(r'\$_POST')):
+        parent = element.parent
+        key, val = re.findall(r'\$_POST\[\'(.*?)\'\]', element.string)[0], parent.find('td', class_='v').string
+        res['POST'][key] = val
+    for element in soup.find_all('td', string=re.compile(r'\$_FILES')):
+        parent = element.parent
+        key = re.findall(r'\$_FILES\[\'(.*?)\'\]', element.string)[0]
+        res['FILES'][key] = dict(re.findall(r'\[([^]]+)\] => ([^\n]+)', parent.select('td.v > pre')[0].string))
+    return res
+
 
 def lfi2rce_php2payload(php_script: str, resource: str):
     """

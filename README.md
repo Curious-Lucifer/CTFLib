@@ -4,7 +4,7 @@
 ```bash
 sudo apt install sagemath tmux
 sudo pip3 install pwntools
-pip3 install pycryptodome gmpy2 tqdm requests pypng
+pip3 install pycryptodome gmpy2 tqdm requests pypng beautifulsoup4
 ```
 
 ## Usage

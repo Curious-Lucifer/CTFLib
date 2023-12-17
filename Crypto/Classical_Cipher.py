@@ -1,6 +1,4 @@
-from string import ascii_lowercase
-from itertools import cycle
-from math import log10
+from .Utils import *
 
 
 def simple_freq_analysis(msg: str):

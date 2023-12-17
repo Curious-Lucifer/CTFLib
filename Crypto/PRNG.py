@@ -1,8 +1,4 @@
-from sage.all import GF
-from sage.matrix.berlekamp_massey import berlekamp_massey
-from functools import reduce
-from math import gcd
-from .Utils import un_bitshift_left_xor_mask, un_bitshift_right_xor
+from .Utils import *
 
 
 def lcg_next(s: int, m: int, inc: int, N: int):

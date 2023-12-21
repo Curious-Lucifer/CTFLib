@@ -48,6 +48,16 @@ def caesar_decrypt(cipher: str, offset: int, charset: list):
     return ''.join(charset[(charset.index(char) - offset) % len(charset)] for char in cipher)
 
 
+def affine_decrypt(cipher: str, a: int, b: int, charset: str):
+    """
+    - input : `cipher (str)`, `a (int)`, `b (int)`, `charset (str)`
+    - output : `plain (str)`
+    """
+
+    charset_length = len(charset)
+    return ''.join(charset[(pow(a, -1, charset_length) * (charset.index(char) - b)) % charset_length] for char in cipher)
+
+
 def vigenere_decrypt(cipher: str, key: str, charset: list):
     """
     - input : `cipher (str)`, `key (str)`, `charset (list)`

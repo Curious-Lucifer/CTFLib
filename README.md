@@ -2,7 +2,7 @@
 
 ## Requirement
 ```bash
-sudo apt install sagemath tmux
+sudo apt install sagemath tmux libboost-filesystem-dev libboost-program-options-dev
 sudo pip3 install pwntools
 pip3 install pycryptodome gmpy2 tqdm requests pypng beautifulsoup4
 ```

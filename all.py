@@ -1,3 +1,5 @@
+print('[\033[1m\033[92m+\033[0m\033[0m] Importing CTFLib')
+
 from .Utils import *
 
 from .Misc.Utils import *
@@ -12,3 +14,7 @@ from .Crypto.Hash import *
 from .Crypto.RSA import *
 
 from .Pwn.fmt import *
+
+from .Tools import *
+
+print('[\033[94m*\033[0m] Import completed')

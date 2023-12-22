@@ -245,6 +245,38 @@ def known_high_bits_of_p(n: int, p0: int, epsilon=None):
         return -1
 
 
+def broadcast_with_linear(a_list: list[int], b_list: list[int], c_list: list[int], n_list: list[int], e: int, epsilon=None):
+    """
+    - input : `a_list (list[int])`, `b_list (list[int])`, `c_list (list[int])`, `n_list (list[int])`, `e (int)`, `epsilon (default=None)` , `0 < epsilon <= 1/7`
+        - `(a1 * m + b1) ^ e ≡ c1 (mod n1)
+        - `(a2 * m + b2) ^ e ≡ c2 (mod n2)
+        - ...
+    - output : `m % N (int)` , `N = n1 * n2 * ...`
+    """
+
+    N = reduce(lambda x, y: x * y, n_list)
+    t_list = []
+    for i in range(e):
+        ai_list = [0] * e
+        ai_list[i] = 1
+        t_list.append(crt(ai_list, n_list))
+
+    P = PolynomialRing(Zmod(N), implementation='NTL', names=('x',))
+    x = P._first_ngens(1)[0]
+
+    g = 0
+    for i in range(e):
+        f = a_list[i] * x + b_list[i]
+        g += t_list[i] * (f ** e - c_list[i])
+
+    g *= pow(int(g.leading_coefficient()), -1, N)
+    small_roots = g.small_roots(epsilon=epsilon)
+    if len(small_roots) > 0:
+        return int(small_roots[0])
+    else:
+        return -1
+
+
 def franklin_reiter(e: int, c1: int, c2: int, f, x):
     """
     - input : `e (int)`, `c1 (int)`, `c2 (int)`, `f (polynomial of x mod n)`, `x (symbol of polynomial mod n)`

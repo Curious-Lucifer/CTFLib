@@ -14,6 +14,7 @@ from .Crypto.Hash import *
 from .Crypto.RSA import *
 
 from .Pwn.fmt import *
+from .Pwn.file import *
 
 from .Tools import *
 

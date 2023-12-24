@@ -2,6 +2,41 @@ from .Utils import *
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 
+def partial_padding_oracle_attack(pre_cipher_block: bytes, cipher_block: bytes, length: int, oracle):
+    '''
+    - input : `pre_cipher_block (bytes)`, `cipher_block (bytes)`, `length (int)`, `oracle (func)`
+    - output : `plain_block (bytes)` , `cipher_block`'s plaintext && `len(plain_block) == length`
+    - oracle func : 
+        - input : `cipher (bytes)`
+        - output : `padding_right (bool)` , represent if the padding of cipher's plaintext is right
+    '''
+
+    assert 1 <= length < 16
+    assert len(pre_cipher_block) == len(cipher_block) == 16
+
+    last_bytes = []
+    for i in range(256):
+        cipher_test = pre_cipher_block[:15] + bytes([i]) + cipher_block
+        if oracle(cipher_test):
+            last_bytes.append(bytes([i]))
+    if len(last_bytes) == 1:
+        plain_block = xor(last_bytes[0], b'\x01', pre_cipher_block[-1:])
+    else:
+        plain_block = xor(last_bytes[last_bytes.index(pre_cipher_block[-1:]) ^ 1], b'\x01', pre_cipher_block[-1:])
+    print(str(plain_block), end='\r')
+
+    for j in range(1, length):
+        for i in range(256):
+            cipher_test = pre_cipher_block[:15 - j] + bytes([i]) + xor(pre_cipher_block[-j:], plain_block, bytes([j + 1]) * j) + cipher_block
+            if oracle(cipher_test):
+                plain_block = xor(bytes([i]), bytes([j + 1]), pre_cipher_block[-j - 1:-j]) + plain_block
+                break
+        print(str(plain_block), end='\r')
+    print(f'result : {str(plain_block)}')
+
+    return plain_block
+
+
 def padding_oracle_attack(pre_cipher_block: bytes, cipher_block: bytes, oracle):
     '''
     - input : `pre_cipher_block (bytes)`, `cipher_block (bytes)`, `oracle (func)`
@@ -24,7 +59,7 @@ def padding_oracle_attack(pre_cipher_block: bytes, cipher_block: bytes, oracle):
         plain_block = xor(last_bytes[last_bytes.index(pre_cipher_block[-1:]) ^ 1], b'\x01', pre_cipher_block[-1:])
     print(str(plain_block), end='\r')
 
-    for j in range(1,16):
+    for j in range(1, 16):
         for i in range(256):
             cipher_test = pre_cipher_block[:15 - j] + bytes([i]) + xor(pre_cipher_block[-j:], plain_block, bytes([j + 1]) * j) + cipher_block
             if oracle(cipher_test):

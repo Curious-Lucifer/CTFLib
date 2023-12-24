@@ -3,10 +3,10 @@ if sys.platform == 'darwin':
     sys.path.append('/private/var/tmp/sage-10.2-current/local/var/lib/sage/venv-python3.11.1/lib/python3.11/site-packages')
 
 from functools import reduce
-from sage.all import var, GF, PolynomialRing, Integer, Zmod, IntegerRing
+from sage.all import var, GF, PolynomialRing, Integer, Zmod, IntegerRing, ZZ, Sequence, prod, power, vector, QQ, floor, RealNumber, Integers
 from sage.matrix.berlekamp_massey import berlekamp_massey
 from string import ascii_lowercase
-from itertools import cycle
+from itertools import cycle, product
 from math import log10, gcd
 from gmpy2 import iroot, isqrt
 from Crypto.PublicKey import RSA

@@ -312,3 +312,80 @@ def coppersmith_short_pad_attack(n: int, e: int, c1: int, c2: int, epsilon=None)
     f = x + diff
     return franklin_reiter(e, c1, c2, f, x)
 
+
+def small_roots(f, bounds, m , d):
+    """
+    > Ref : https://github.com/defund/coppersmith
+    """
+
+    R = f.base_ring()
+    N = R.cardinality()
+
+    f /= f.coefficients().pop(0)
+    f = f.change_ring(ZZ)
+
+    G = Sequence([], f.parent())
+    for i in range(m + 1):
+        base = N ** (m - i) * f ** i
+        for shifts in product(range(d), repeat=f.nvariables()):
+            g = base * prod(map(power, f.variables(), shifts))
+            G.append(g)
+
+    B, monomials = G.coefficient_matrix()
+    monomials = vector(monomials)
+
+    factors = [monomial(*bounds) for monomial in monomials]
+    for i, factor in enumerate(factors):
+        B.rescale_col(i, factor)
+
+    B = B.dense_matrix().LLL()
+
+    B = B.change_ring(QQ)
+    for i, factor in enumerate(factors):
+        B.rescale_col(i, 1 / factor)
+
+    H = Sequence([], f.parent().change_ring(QQ))
+    for h in filter(None, B * monomials):
+        H.append(h)
+        I = H.ideal()
+        if I.dimension() == -1 :
+            H.pop()
+        elif I.dimension() == 0 :
+            roots = []
+            for root in I.variety(ring=ZZ):
+                root = tuple(R(root[var]) for var in f.variables())
+                roots.append(root)
+            return roots
+
+    return []
+
+
+def boneh_durfee(e: int, n: int, delta: float=0.262, m: int=3, d: int=4):
+    """
+    - input : `e (int)`, `n (int)`, `delta (float, default=0.262)`, `m (int, default=3)`, `d (int, default=4)` , `d < n ** delta`
+    - output : `p, q, d (int, int, int)`
+
+    > Ref : https://github.com/defund/coppersmith
+    """
+
+    bounds = (floor(n ** RealNumber(delta)), 1 << ((n.bit_length() // 2) + (n.bit_length() % 2)))
+
+    R = Integers(e)
+    P = PolynomialRing(R, names=('k', 's',))
+    (k, s,) = P._first_ngens(2)
+
+    f = 2 * k * ((n + 1) // 2 - s) + 1
+
+    try:
+        # (e * d - 1) // ((p - 1) * (q - 1)), (p + q) // 2
+        _, p_plus_q = small_roots(f, bounds, m=m, d=d)[0]
+        p_plus_q = int(p_plus_q) * 2
+    except:
+        return -1, -1, -1
+    
+    D = p_plus_q ** 2 - 4 * n
+    p = (p_plus_q + int(isqrt(D))) // 2
+    q = (p_plus_q - int(isqrt(D))) // 2
+    d = pow(e, -1, (p - 1) * (q - 1))
+    return p, q, d
+

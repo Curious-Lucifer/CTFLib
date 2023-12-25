@@ -10,6 +10,7 @@ from itertools import cycle, product
 from math import log10, gcd
 from gmpy2 import iroot, isqrt
 from Crypto.PublicKey import RSA
+from Crypto.Util.number import isPrime
 from tqdm import trange
 import requests
 

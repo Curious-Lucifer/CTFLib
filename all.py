@@ -12,6 +12,8 @@ from .Crypto.Block_Cipher import *
 from .Crypto.PRNG import *
 from .Crypto.Hash import *
 from .Crypto.RSA import *
+from .Crypto.Diffie_Hellman import *
+from .Crypto.Discrete_Logarithm import *
 
 from .Pwn.fmt import *
 from .Pwn.file import *

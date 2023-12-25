@@ -11,14 +11,17 @@ def pem2key(pem_filename: str):
     return int(key.n), int(key.e)
 
 
-def factor_online(n: int):
+def factor_online(n: int, parse: bool=True):
     """
-    - input : `n (int)`
+    - input : `n (int)`, `parse (bool, default=True)`
     - output : `factor_list (list[factor1, factor2, ...])` , that `n = factor1 * factor2 * ...`
     """
 
     result = requests.get('http://factordb.com/api', params={'query': str(n)}).json()['factors']
-    return sum([[int(factor)] * time  for factor, time in result], [])
+    if parse == True:
+        return sum([[int(factor)] * time  for factor, time in result], [])
+    else:
+        return [(int(factor), time) for factor, time in result]
 
 
 def factor_n_with_d(n: int, e: int, d: int):

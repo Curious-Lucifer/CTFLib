@@ -3,7 +3,8 @@ if sys.platform == 'darwin':
     sys.path.append('/private/var/tmp/sage-10.2-current/local/var/lib/sage/venv-python3.11.1/lib/python3.11/site-packages')
 
 from functools import reduce
-from sage.all import var, GF, PolynomialRing, Integer, Zmod, IntegerRing, ZZ, Sequence, prod, power, vector, QQ, floor, RealNumber, Integers
+from sage.all import var, GF, PolynomialRing, Integer, Zmod, IntegerRing, ZZ, Sequence, prod, power, vector, QQ, \
+    floor, RealNumber, Integers, IntegerModRing
 from sage.matrix.berlekamp_massey import berlekamp_massey
 from string import ascii_lowercase
 from itertools import cycle, product
@@ -58,11 +59,25 @@ def crt(ai_list: list[int], mi_list: list[int]):
     return sum(ai * ti * Mi for ai, ti, Mi in zip(ai_list, ti_list, Mi_list)) % M
 
 
+def jocobi_symbol(a: int, factor_list: list[tuple[int, int]]):
+    """
+    - input : `a (int)`, `factor_list (list[tuple[int, int]])`
+    - output : `js (int)` , value of (a/n) (jocobi symbol)
+    """
+
+    js = 1
+    for factor, time in factor_list:
+        js *= legendre_symbol(a, factor) ** time
+    return js
+
+
 def legendre_symbol(a: int, p: int):
     """
     - input : `a (int)`, `p (int)`
     - output : `ls (int)` , value of (a/p) (legendre symbol)
     """
+
+    assert isPrime(p)
 
     ls = pow(a, (p - 1) // 2, p)
     return -1 if ls == (p - 1) else ls
@@ -133,4 +148,14 @@ def un_bitshift_left_xor_mask(value: int, shift: int, mask: int):
         result |= part
         i += 1
     return result
+
+
+def get_primitive_root(n: int):
+    """
+    - input : `n (int)`
+    - output : `g (int)` , primitive root of modulo n
+    """
+
+    G = IntegerModRing(n)
+    return int(G.multiplicative_generator())
 

@@ -4,7 +4,7 @@ from .Utils import *
 def giant_baby(gi: int, hi: int, p: int, pi: int=None):
     """
     - input : `gi (int)`, `hi (int)`, `p (int)`, `pi (int, default=None)`
-        - `g ^ (((p - 1) / pi) * x) ≡ h (mod p)` or `gi ^ x ≡ hi (mod p)`
+        - `g ^ (((p - 1) / pi) * x) ≡ h ^ ((p - 1) / pi) (mod p)`
         - `gi ≡ g ^ ((p - 1) / pi) (mod p)`
         - `hi ≡ h ^ ((p - 1) / pi) (mod p)`
     - output : `x (int)` , `x (mod pi)` or `x (mod (p - 1))`
@@ -31,7 +31,7 @@ def giant_baby(gi: int, hi: int, p: int, pi: int=None):
 def Pollard_rho(gi: int, hi: int, p: int, pi: int):
     """
     - input : `gi (int)`, `hi (int)`, `p (int)`, `pi (int)`
-        - `g ^ (((p - 1) / pi) * x) ≡ h (mod p)`
+        - `g ^ (((p - 1) / pi) * x) ≡ h ^ ((p - 1) / pi) (mod p)`
         - `gi ≡ g ^ ((p - 1) / pi) (mod p)`
         - `hi ≡ h ^ ((p - 1) / pi) (mod p)`
     - output : `x (int)` , `x (mod pi)`
@@ -65,7 +65,7 @@ def Pohlig_Hellman(g: int, h: int, p: int, factor_list: list[tuple[int, int]], d
     - outupt : `x (int)` , `x (mod (p - 1))`
     - discrete_log_func : 
         - input : `gi (int)`, `hi (int)`, `p (int)`, `pi (int)`
-            - `g ^ (((p - 1) / pi) * x) ≡ h (mod p)`
+            - `g ^ (((p - 1) / pi) * x) ≡ h ^ ((p - 1) / pi) (mod p)`
             - `gi ≡ g ^ ((p - 1) / pi) (mod p)`
             - `hi ≡ h ^ ((p - 1) / pi) (mod p)`
         - output : `x (int)` , `x (mod pi)`
@@ -83,7 +83,7 @@ def Pohlig_Hellman(g: int, h: int, p: int, factor_list: list[tuple[int, int]], d
             gi = pow(g, (p - 1) // pi, p)
             xi = 0
             for i in range(time):
-                hi = pow(h * pow(g, -xi, p), (p - 1) // (pi * (i + 1)), p)
+                hi = pow(h * pow(g, -xi, p), (p - 1) // (pi ** (i + 1)), p)
                 xi += discrete_log_func(gi, hi, p, pi) * (pi ** i)
             x_list.append(xi)
             pi_list.append(pi ** time)

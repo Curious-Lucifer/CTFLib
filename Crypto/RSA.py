@@ -284,6 +284,13 @@ def franklin_reiter(e: int, c1: int, c2: int, f, x):
     """
     - input : `e (int)`, `c1 (int)`, `c2 (int)`, `f (polynomial of x mod n)`, `x (symbol of polynomial mod n)`
     - output : `m1 (int)` , `f(m1) = m2`
+
+    `f` & `x`'s example : 
+    ```python
+    P = PolynomialRing(Zmod(n), implementation='NTL', names=('x',))
+    x = P._first_ngens(1)[0]
+    f = x ** 6 + 3 * x ** 5 + 17 * x ** 4 + 2 * x ** 3 + x ** 2 + 7 * x + 79
+    ```
     """
 
     f1 = x ** e - c1

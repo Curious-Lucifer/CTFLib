@@ -4,7 +4,7 @@ if sys.platform == 'darwin':
 
 from functools import reduce
 from sage.all import var, GF, PolynomialRing, Integer, Zmod, IntegerRing, ZZ, Sequence, prod, power, vector, QQ, \
-    floor, RealNumber, Integers, IntegerModRing
+    floor, RealNumber, Integers, IntegerModRing, Matrix
 from sage.matrix.berlekamp_massey import berlekamp_massey
 from string import ascii_lowercase
 from itertools import cycle, product

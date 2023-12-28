@@ -15,6 +15,7 @@ from .Crypto.RSA import *
 from .Crypto.Diffie_Hellman import *
 from .Crypto.Discrete_Logarithm import *
 from .Crypto.Quadratic_Residue import *
+from .Crypto.Lattice import *
 
 from .Pwn.fmt import *
 from .Pwn.file import *

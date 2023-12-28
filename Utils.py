@@ -2,6 +2,7 @@ from pwn import *
 from Crypto.Util.number import *
 from tqdm import trange
 from gmpy2 import iroot
+import json
 
 context.arch = 'amd64'
 context.terminal = ['tmux', 'splitw', '-h']
@@ -25,6 +26,6 @@ def nc(command: str):
     - output : `r (remote object)`
     """
 
-    _, target, port = command.split()
+    target, port = command.lstrip('nc ').split()
     return remote(target, int(port))
 

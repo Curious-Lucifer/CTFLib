@@ -4,7 +4,7 @@ if sys.platform == 'darwin':
 
 from functools import reduce
 from sage.all import var, GF, PolynomialRing, Integer, Zmod, IntegerRing, ZZ, Sequence, prod, power, vector, QQ, \
-    floor, RealNumber, Integers, IntegerModRing, Matrix
+    floor, RealNumber, Integers, IntegerModRing, Matrix, factor, discrete_log, EllipticCurve
 from sage.matrix.berlekamp_massey import berlekamp_massey
 from string import ascii_lowercase
 from itertools import cycle, product
@@ -12,8 +12,34 @@ from math import log10, gcd
 from gmpy2 import iroot, isqrt
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import isPrime
-from tqdm import trange
+from tqdm import trange, tqdm
 import requests
+
+
+def factor_online(n: int, parse: bool=True):
+    """
+    - input : `n (int)`, `parse (bool, default=True)`
+    - output : `factor_list (list[factor1, factor2, ...] or list[(factor1, time1), (factor2, time2), ...])` , that `n = factor1 * factor2 * ...`
+    """
+
+    result = requests.get('http://factordb.com/api', params={'query': str(n)}).json()['factors']
+    if parse == True:
+        return sum([[int(factor)] * time  for factor, time in result], [])
+    else:
+        return [(int(factor), time) for factor, time in result]
+
+
+def factor_sage(n: int, parse: bool=True):
+    """
+    - input : `n (int)`, `parse (bool, default=True)`
+    - output : `factor_list (list[factor1, factor2, ...] or list[(factor1, time1), (factor2, time2), ...])` , that `n = factor1 * factor2 * ...`
+    """
+
+    result = [(int(f), int(t)) for f, t in factor(n)]
+    if parse == True:
+        return sum([[f] * t  for f, t in result], [])
+    else:
+        return result
 
 
 def xor(*args):

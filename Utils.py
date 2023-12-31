@@ -1,7 +1,5 @@
 from pwn import *
 from Crypto.Util.number import *
-from tqdm import trange
-from gmpy2 import iroot
 import json
 
 context.arch = 'amd64'

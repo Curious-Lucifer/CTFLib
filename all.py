@@ -16,6 +16,7 @@ from .Crypto.Diffie_Hellman import *
 from .Crypto.Discrete_Logarithm import *
 from .Crypto.Quadratic_Residue import *
 from .Crypto.Lattice import *
+from .Crypto.Elliptic_Curve import *
 
 from .Pwn.fmt import *
 from .Pwn.file import *

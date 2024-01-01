@@ -13,7 +13,7 @@ from gmpy2 import iroot, isqrt
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import isPrime
 from tqdm import trange, tqdm
-import requests
+import requests as req
 
 
 def factor_online(n: int, parse: bool=True):
@@ -22,7 +22,7 @@ def factor_online(n: int, parse: bool=True):
     - output : `factor_list (list[factor1, factor2, ...] or list[(factor1, time1), (factor2, time2), ...])` , that `n = factor1 * factor2 * ...`
     """
 
-    result = requests.get('http://factordb.com/api', params={'query': str(n)}).json()['factors']
+    result = req.get('http://factordb.com/api', params={'query': str(n)}).json()['factors']
     if parse == True:
         return sum([[int(factor)] * time  for factor, time in result], [])
     else:

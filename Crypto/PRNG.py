@@ -99,3 +99,86 @@ def MT19937_attack(rand_list: list[int], n: int):
         MT19937_gen_next_state(state)
     return MT19937_state2rand(state[n % 624])
 
+
+class MT19937_z3_Attack:
+    def __init__(self):
+        self.state_idx = 0
+        self.state = [z3.BitVec(f'state_{self.state_idx}[{i}]', 32) for i in range(624)]
+        self.idx = 0
+        self.solver = z3.Solver()
+        self.counter = count()
+        self.checknum = 0
+        self.real_state = None
+
+    def rand2state(self, r_symbol):
+        label = next(self.counter)
+
+        s_symbol = z3.BitVec(f's_symbol_{label}', 32)
+        num0 = z3.BitVec(f'num0_{label}', 32)
+        num1 = z3.BitVec(f'num1_{label}', 32)
+        num2 = z3.BitVec(f'num2_{label}', 32)
+
+        self.solver.add([
+            num0 == s_symbol ^ (z3.LShR(s_symbol, 11)), 
+            num1 == num0 ^ ((num0 << 7) & 0x9D2C5680),
+            num2 == num1 ^ ((num1 << 15) & 0xEFC60000),
+            r_symbol == num2 ^ (z3.LShR(num2, 18))
+        ])
+
+        return s_symbol
+
+    def gen_next_state(self):
+        state = [s for s in self.state]
+
+        for i in range(624):
+            y = (state[i] & 0x80000000) + (state[(i + 1) % 624] & 0x7fffffff)
+            n = z3.LShR(y, 1)
+            n = n ^ state[(i + 397) % 624]
+            n = z3.If(y & 1 == 1, n ^ 0x9908b0df, n)
+            state[i] = n
+
+        return state
+
+    def setrandbits(self, randbits: str):
+        assert len(randbits) == 32
+        assert all(map(lambda x: x in '01?', randbits))
+
+        if self.idx == 624:
+            next_state = self.gen_next_state()
+            self.state_idx += 1
+            self.state = [z3.BitVec(f'state_{self.state_idx}[{i}]', 32) for i in range(624)]
+            for i in range(624):
+                self.solver.add(self.state[i] == next_state[i])
+            self.idx = 0
+
+        label = next(self.counter)
+
+        r_symbol = z3.BitVec(f'r_symbol_{label}', 32)
+        for i, bit in enumerate(reversed(randbits)):
+            if bit != '?':
+                self.checknum += 1
+                self.solver.add(z3.Extract(i, i, r_symbol) == bit)
+        s_symbol = self.rand2state(r_symbol)
+
+        self.solver.add(self.state[self.idx] == s_symbol)
+        self.idx += 1
+
+    def getRandomObj(self):
+        assert self.checknum >= 624 * 32
+
+        if self.real_state is None:
+            print('[\033[1m\033[92m+\033[0m\033[0m] Calculating Current State')
+            st_time = time()
+
+            assert self.solver.check() == z3.sat
+
+            model = self.solver.model()
+            print(f'[\033[94m*\033[0m] {int(time() - st_time)}s Calculation completed')
+
+            self.real_state = list(map(lambda x: model[x].as_long(), self.state))
+
+        r = random.Random()
+        r.setstate((3, tuple(self.real_state + [self.idx]), None))
+
+        return r
+

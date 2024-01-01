@@ -7,13 +7,15 @@ from sage.all import var, GF, PolynomialRing, Integer, Zmod, IntegerRing, ZZ, Se
     floor, RealNumber, Integers, IntegerModRing, Matrix, factor, discrete_log, EllipticCurve
 from sage.matrix.berlekamp_massey import berlekamp_massey
 from string import ascii_lowercase
-from itertools import cycle, product
+from itertools import cycle, product, count
 from math import log10, gcd
 from gmpy2 import iroot, isqrt
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import isPrime
 from tqdm import trange, tqdm
+from time import time
 import requests as req
+import z3, random
 
 
 def factor_online(n: int, parse: bool=True):

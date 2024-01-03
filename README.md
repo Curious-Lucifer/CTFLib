@@ -3,7 +3,7 @@
 ## Requirement
 ```bash
 sudo apt install sagemath tmux libboost-filesystem-dev libboost-program-options-dev
-sudo pip3 install pwntools
+sudo pip3 install pwntools z3-solver
 pip3 install pycryptodome gmpy2 tqdm requests pypng beautifulsoup4
 ```
 

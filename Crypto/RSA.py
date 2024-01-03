@@ -200,6 +200,41 @@ def bleichenbacher_1998(n: int, e: int, c: int, oracle):
         print(s, M)
 
 
+def coppersmith_method(f, m: int, t: int, X: int):
+    assert f.is_monic()
+
+    delta = f.degree()
+    N = Integer(f.base_ring().modulus()[0]) + 1
+
+    n = delta * m + t
+
+    fZ = f.change_ring(ZZ)
+    x = fZ.parent().gen()
+
+    fi_list = []
+    for j in range(m):
+        for k in range(delta):
+            fi_list.append(((x * X) ** k) * (N ** (m - j)) * (fZ(x * X) ** j))
+    for l in range(t):
+        fi_list.append(((x * X) ** l) * (fZ(x * X) ** m))
+
+    B = Matrix(ZZ, n)
+    for i in range(n):
+        for j in range(i + 1):
+            B[i, j] = fi_list[i][j]
+
+    RES = B.LLL()
+
+    g = 0
+    for i in range(n):
+        g += (RES[0, i] / (X ** i)) * (x ** i)
+
+    roots = g.roots()
+    if (len(roots) > 0) and (roots[0][0] in ZZ):
+        return int(roots[0][0])
+    return -1
+
+
 def stereotyped_message(n: int, e: int, c: int, m0: int, epsilon=None):
     """
     - input : `n (int)`, `e (int)`, `c (int)`, `m0 (int)`, `epsilon (default=None)` , `0 < epsilon <= 1/7`

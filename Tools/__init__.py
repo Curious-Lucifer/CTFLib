@@ -1,7 +1,7 @@
 import os, subprocess, sys
 
 if sys.platform == 'darwin':
-    BASE_DIR = ''
+    BASE_DIR = '/Users/curious/code/CTFLib/Tools/'
 else:
     BASE_DIR = '/home/curious/code/CTFLib/Tools/'
 SANDBOX_DIR = os.path.join(BASE_DIR, 'SandBox/')

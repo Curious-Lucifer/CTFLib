@@ -24,6 +24,6 @@ def nc(command: str):
     - output : `r (remote object)`
     """
 
-    target, port = command.lstrip('nc ').split()
+    target, port = command.lstrip('nc').split()
     return remote(target, int(port))
 

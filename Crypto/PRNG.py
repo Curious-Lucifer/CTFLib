@@ -128,7 +128,7 @@ class MT19937_z3_Attack:
         return s_symbol
 
     def gen_next_state(self):
-        state = [s for s in self.state]
+        state = self.state.copy()
 
         for i in range(624):
             y = (state[i] & 0x80000000) + (state[(i + 1) % 624] & 0x7fffffff)

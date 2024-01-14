@@ -7,6 +7,18 @@ sudo pip3 install pwntools z3-solver
 pip3 install pycryptodome gmpy2 tqdm requests pypng beautifulsoup4
 ```
 
+[flatter](https://github.com/keeganryan/flatter) : 
+```bash
+git clone https://github.com/keeganryan/flatter.git && cd flatter
+sudo apt install libgmp-dev libmpfr-dev fplll-tools libfplll-dev libeigen3-dev
+mkdir build && cd ./build
+cmake ..
+make
+sudo make install
+sudo ldconfig
+cd ../.. && rm -rf flatter
+```
+
 ## Usage
 ```python
 import sys

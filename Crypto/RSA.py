@@ -280,11 +280,7 @@ def broadcast_with_linear(a_list: list[int], b_list: list[int], c_list: list[int
     """
 
     N = reduce(lambda x, y: x * y, n_list)
-    t_list = []
-    for i in range(e):
-        ai_list = [0] * e
-        ai_list[i] = 1
-        t_list.append(crt(ai_list, n_list))
+    t_list = [(N // n) * pow(N // n, -1, n) for n in n_list]
 
     P = PolynomialRing(Zmod(N), implementation='NTL', names=('x',))
     x = P._first_ngens(1)[0]

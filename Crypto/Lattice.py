@@ -1,4 +1,5 @@
 from .Utils import *
+from ..Tools import flatter
 
 
 def Merkle_Hellman_knapsack(pubkeys: list[int], c: int):
@@ -105,3 +106,33 @@ def Merkle_Hellman_knapsack(pubkeys: list[int], c: int):
     res = method2()
     print('[\033[94m*\033[0m] Calculation completed')
     return [1 if n == 1 else 0 for n in res[:-1]]
+
+
+def mul_noise_crt(p_list: list[int], y_list: list[int], a_bit_length: int, r_bit_length: int):
+    """
+    - input : `p_list (list[int])`, `y_list (list[int])`, `a_bit_length (int)`, `r_bit_length (int)`
+        - `r0 * a ≡ y0 (mod p0)` 
+        - `r1 * a ≡ y1 (mod p1)` 
+        - ...
+    - output : `a (int)`
+    """
+    
+    P = reduce(lambda x, y: x * y, p_list)
+    lambda_list = [(P // p) * pow(P // p, -1, p) for p in p_list]
+
+    n = len(p_list)
+    A = 1 << (a_bit_length + r_bit_length + 1)
+
+    B = Matrix(ZZ, n + 1)
+    for i in range(n):
+        B[i, i] = A
+        B[i, -1] = lambda_list[i] * y_list[i]
+    B[-1, -1] = P
+
+    RES = flatter(B)
+    for v in RES:
+        if all(x > 0 for x in v * sign(v[-1])):
+            v *= sign(v[-1])
+            sol = [x // A for x in v[:-1]]
+            return int(v[-1] // reduce(lcm, sol))
+

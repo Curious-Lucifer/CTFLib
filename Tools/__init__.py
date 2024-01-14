@@ -1,4 +1,5 @@
-import os, subprocess, sys
+from sage.all import Matrix
+import os, subprocess, sys, re
 
 if sys.platform == 'darwin':
     BASE_DIR = '/Users/curious/code/CTFLib/Tools/'
@@ -72,3 +73,10 @@ def fastcoll(prefix: bytes):
 
     return msg1, msg2
 
+
+def flatter(M):
+    "https://github.com/keeganryan/flatter"
+
+    payload = '[[' + ']\n['.join(' '.join(map(str, row)) for row in M) + ']]'
+    res = subprocess.check_output('flatter', input=payload.encode())
+    return Matrix(M.nrows(), M.ncols(), map(int, re.findall(b'-?\\d+', res)))

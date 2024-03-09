@@ -3,7 +3,7 @@ from .Utils.pwntools_import import info, success
 info('Importing CTFLib')
 
 
-from settings import *
+from .settings import *
 
 from .Utils.pwntools_import import *
 from .Utils.sage_import import *

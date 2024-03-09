@@ -1,3 +1,2 @@
-from . import fmt
-from . import file
+from . import fmt, file
 

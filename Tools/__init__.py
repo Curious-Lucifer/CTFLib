@@ -1,82 +1,76 @@
-from sage.all import Matrix
-import os, subprocess, sys, re
+import subprocess, re
 
-if sys.platform == 'darwin':
-    BASE_DIR = '/Users/curious/code/CTFLib/Tools/'
-else:
-    BASE_DIR = '/home/curious/code/CTFLib/Tools/'
-SANDBOX_DIR = os.path.join(BASE_DIR, 'SandBox/')
-
-if not os.path.exists(SANDBOX_DIR):
-    os.makedirs(SANDBOX_DIR)
+from ..settings import BASE_PATH, PLATFORM
+from ..Utils.sage_import import Matrix
+from ..Utils.snippet import check_command, info, success
 
 
-def check_command(command: str):
-    """
-    - input : `command (str)`
-    - output : `check (bool)`
-    """
+TOOLS_PATH = BASE_PATH / 'Tools'
+SANDBOX_PATH = TOOLS_PATH / 'SandBox'
 
-    try:
-        res = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        return res.returncode == 0
-    except:
-        return False
+SANDBOX_PATH.mkdir(parents=True, exist_ok=True)
 
 
 def fastcoll(prefix: bytes):
-    """
-    - input : `prefix (bytes)`
-    - output : `msg1 (bytes)`, `msg2 (bytes)`
-    """
+    if PLATFORM == 'darwin':
+        raise NotImplementedError
 
-    if not os.path.isfile(os.path.join(BASE_DIR, 'fastcoll/fastcoll')):
-        if not check_command('g++ --version'):
-            raise FileNotFoundError("fastcoll compile failed")
+    binary = TOOLS_PATH / 'fastcoll' / 'fastcoll'
+    prefix_file = SANDBOX_PATH / 'fastcoll-prefix'
+    msg1_file = SANDBOX_PATH /'fastcoll-msg1'
+    msg2_file = SANDBOX_PATH /'fastcoll-msg2'
 
-        print('[\033[1m\033[92m+\033[0m\033[0m] Compiling fastcoll')
+    if not binary.exists():
+        if not check_command('g++'):
+            raise FileNotFoundError('g++ command not found')
+
+        info('Compiling fastcoll')
         try:
             subprocess.run(
                 'g++ -O3 ./fastcoll/*.cpp -lboost_filesystem -lboost_program_options -lboost_system -static -o ./fastcoll/fastcoll',
                 shell = True,
                 check = True, 
-                cwd = BASE_DIR, 
+                cwd = str(TOOLS_PATH), 
                 stdout = subprocess.PIPE, 
                 stderr = subprocess.PIPE
             )
         except:
             raise FileNotFoundError("fastcoll compile failed")
-        print('[\033[94m*\033[0m] Compilation completed')
+        success('Compilation competed')
 
-    open(os.path.join(SANDBOX_DIR, 'fastcoll-prefix'), 'wb').write(prefix)
+    prefix_file.write_bytes(prefix)
 
-    print('[\033[1m\033[92m+\033[0m\033[0m] Calculating md5 collision')
+    info('Calculating md5 collision')
     try:
         subprocess.run(
             './fastcoll/fastcoll -p ./SandBox/fastcoll-prefix -o ./SandBox/fastcoll-msg1 ./SandBox/fastcoll-msg2', 
             shell = True, 
             check = True, 
-            cwd = BASE_DIR, 
+            cwd = str(TOOLS_PATH), 
             stdout = subprocess.PIPE, 
             stderr = subprocess.PIPE
         )
     except:
         raise FileNotFoundError("fastcoll execute error")
-    print('[\033[94m*\033[0m] Calculation completed')
+    success('Calculation completed')
 
-    msg1 = open(os.path.join(SANDBOX_DIR, 'fastcoll-msg1'), 'rb').read()
-    msg2 = open(os.path.join(SANDBOX_DIR, 'fastcoll-msg2'), 'rb').read()
+    msg1, msg2 = msg1_file.read_bytes(), msg2_file.read_bytes()
 
-    os.remove(os.path.join(SANDBOX_DIR, 'fastcoll-prefix'))
-    os.remove(os.path.join(SANDBOX_DIR, 'fastcoll-msg1'))
-    os.remove(os.path.join(SANDBOX_DIR, 'fastcoll-msg2'))
+    prefix_file.unlink()
+    msg1_file.unlink()
+    msg2_file.unlink()
 
     return msg1, msg2
 
 
 def flatter(M):
-    "https://github.com/keeganryan/flatter"
+    if PLATFORM == 'darwin':
+        raise NotImplementedError
+
+    if not check_command('flatter'):
+        raise FileNotFoundError('flatter command not found')
 
     payload = '[[' + ']\n['.join(' '.join(map(str, row)) for row in M) + ']]'
     res = subprocess.check_output('flatter', input=payload.encode())
     return Matrix(M.nrows(), M.ncols(), map(int, re.findall(b'-?\\d+', res)))
+

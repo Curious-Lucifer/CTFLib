@@ -1,5 +1,4 @@
 from .Utils import *
-from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 
 def partial_padding_oracle_attack(pre_cipher_block: bytes, cipher_block: bytes, length: int, oracle):

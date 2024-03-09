@@ -34,11 +34,6 @@ def read_png(input_file: str):
 
 
 def all_index(seq: list, element):
-    """
-    - input : `seq (list)`, `element`
-    - output : `index_list (list)`
-    """
-
     index_list = []
     offset = 0
     for _ in range(seq.count(element)):

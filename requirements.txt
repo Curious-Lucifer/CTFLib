@@ -1,0 +1,7 @@
+z3-solver
+pycryptodome
+gmpy2
+tqdm
+requests
+pypng
+beautifulsoup4

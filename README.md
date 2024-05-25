@@ -1,5 +1,11 @@
 # CTFLib
 
+## Requirement
+
+- Ubuntu
+- Docker
+
+---
 ## Setup
 
 如果只使用 `CTFLib.Utils` 和 `CTFLib.Pwn`

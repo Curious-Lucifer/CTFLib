@@ -7,6 +7,7 @@ if [[ $# == 0 ]]; then
     echo "Misc setup    : ./setup misc"
     echo "Tools setup   : ./setup tools"
     echo "Crypto setup  : ./setup crypto"
+    echo "Command setup : ./setup cmd"
     echo "All setup     : ./setup all"
     exit 0
 fi
@@ -50,6 +51,19 @@ crypto_setup() {
 }
 
 
+command_setup() {
+    pip3 install docker
+
+    if [ -n "$ZSH_VERSION" ]; then
+        echo 'alias ctf=$HOME/code/CTFLib/ctf.py' >> ~/.zshrc
+        source ~/.zshrc
+    else
+        echo 'alias ctf=$HOME/code/CTFLib/ctf.py' >> ~/.bashrc
+        source ~/.bashrc
+    fi
+}
+
+
 if [[ $1 == "min" ]]; then
     minimun_setup
 elif [[ $1 == "misc" ]]; then
@@ -63,9 +77,12 @@ elif [[ $1 == "crypto" ]]; then
     misc_setup
     tools_setup
     crypto_setup
+elif [[ $1 == "cmd " ]]; then
+    command_setup
 elif [[ $1 == "all" ]]; then
     minimun_setup
     misc_setup
     tools_setup
+    command_setup
     crypto_setup
 fi

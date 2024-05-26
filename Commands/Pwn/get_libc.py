@@ -8,15 +8,15 @@ import docker
 
 def add_arguments(parser: argparse.ArgumentParser):
     parser.add_argument('image', type=str)
-    parser.add_argument('libc_dest', type=str, nargs='?')
+    parser.add_argument('libc_path', type=str, nargs='?')
 
 
 def handle(args: argparse.Namespace):
-    get_libc(args.image, args.libc_dest)
+    get_libc(args.image, args.libc_path)
 
 
-def get_libc(image: str, libc_dest: str | None = None):
-    libc_dest = libc_dest or ''
+def get_libc(image: str, libc_path: str | None = None):
+    libc_path = libc_path or ''
 
     client = docker.from_env()
     container = client.containers.create(image=image)
@@ -28,7 +28,7 @@ def get_libc(image: str, libc_dest: str | None = None):
 
     fileobj.seek(0)
     with tarfile.open(fileobj=fileobj, mode='r') as tar:
-        tar.extractall(path=libc_dest)
+        tar.extractall(path=libc_path)
 
     container.remove()
 

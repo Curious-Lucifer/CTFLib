@@ -52,6 +52,7 @@ crypto_setup() {
 
 
 command_setup() {
+    sudo apt install musl-tools
     pip3 install docker
 
     if [ -n "$ZSH_VERSION" ]; then

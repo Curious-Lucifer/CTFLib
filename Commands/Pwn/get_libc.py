@@ -3,6 +3,7 @@ import tarfile
 import argparse
 
 
+from docker.errors import ImageNotFound
 import docker
 
 
@@ -19,6 +20,12 @@ def get_libc(image: str, libc_path: str | None = None):
     libc_path = libc_path or ''
 
     client = docker.from_env()
+
+    try:
+        client.images.get(image)
+    except ImageNotFound:
+        client.images.pull(image)
+
     container = client.containers.create(image=image)
     stream, _ = container.get_archive('/lib/x86_64-linux-gnu/libc.so.6')
 

@@ -7,6 +7,7 @@
 
 ---
 ## Setup
+> 需要把 `CTFLib` 所在的資料夾加到 `PYTHONPATH` 中
 
 如果只使用 `CTFLib.Utils` 和 `CTFLib.Pwn`
 

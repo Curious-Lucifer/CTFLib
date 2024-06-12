@@ -1,8 +1,8 @@
 import argparse
 
 from . import get_libc
-from . import get_vmlinux
 from . import get_shell
+from . import get_vmlinux
 
 
 def add_arguments(parser: argparse.ArgumentParser):

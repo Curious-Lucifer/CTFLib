@@ -15,7 +15,3 @@ def xor(*args) -> bytes:
 
     return bytes([reduce(lambda i, j : i ^ j, l) for l in zip(*args)])
 
-
-
-
-

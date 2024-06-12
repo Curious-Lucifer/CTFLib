@@ -1,12 +1,8 @@
-from tqdm import trange
-
-from typing import Sequence, Any
-from pathlib import Path
 import shutil
-import logging
+from pathlib import Path
+from typing import Sequence, Any
 
-
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+from tqdm import trange, tqdm
 
 
 def all_index(seq: Sequence, element: Any) -> list[int]:
@@ -69,10 +65,14 @@ def check_directory(directory: Path):
     directory.mkdir(parents=True, exist_ok=True)
 
 
-def info(msg: str):
-    logging.info(f'[\033[94m*\033[0m] {msg}')
+def info(*args, **kwargs):
+    print('[\033[94m*\033[0m]', *args, **kwargs)
 
 
-def success(msg: str):
-    logging.info(f'[\033[92m+\033[0m] {msg}')
+def success(*args, **kwargs):
+    print('[\033[92m+\033[0m]', *args, **kwargs)
+
+
+def error(*args, **kwargs):
+    print('[\033[91mX\033[0m]', *args, **kwargs)
 

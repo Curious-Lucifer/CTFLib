@@ -21,7 +21,7 @@ minimun_setup() {
 
 misc_setup() {
     # Misc
-    pip3 install pypng
+    pip3 install pillow
 }
 
 

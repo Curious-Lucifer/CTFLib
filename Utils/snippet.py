@@ -1,3 +1,5 @@
+from pwn import remote, process
+
 
 def local(binary: str | list[str], libc: str | None = None, env: dict[str, str] | None = None):
     '''
@@ -11,8 +13,6 @@ def local(binary: str | list[str], libc: str | None = None, env: dict[str, str] 
     r = local('./binary', './libc.so.6')
     ```
     '''
-
-    from pwn import process
 
     env = env or {}
     if libc:
@@ -32,8 +32,6 @@ def nc(cmd: str):
     r = nc('127.0.0.1 20000')
     ```
     '''
-
-    from pwn import remote
 
     server, port = cmd.removeprefix('nc ').split()
     return remote(server, int(port))

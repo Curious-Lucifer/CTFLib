@@ -1,8 +1,8 @@
-from typing import Callable
 from functools import reduce
+from typing import Callable
 
-from .utils import xor
 from ..Utils.tools import trange
+from .utils import xor
 
 
 def padding_oracle_attack(pre_cipher_block: bytes, current_cipher_block: bytes, oracle: Callable[[bytes], bool], length: int = 16):

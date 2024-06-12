@@ -1,8 +1,6 @@
 import argparse
 import os
 
-import sys
-sys.path.append(os.path.join(os.environ.get('HOME'), 'code'))
 from CTFLib.config import get_settings
 
 settings = get_settings()

@@ -2,11 +2,10 @@
 
 ## Requirement
 
-- Ubuntu
 - Docker
 
 ---
-## Setup
+## Setup For Ubuntu
 > 需要把 `CTFLib` 所在的資料夾加到 `PYTHONPATH` 中
 
 如果只使用 `CTFLib.Utils` 和 `CTFLib.Pwn`
@@ -72,3 +71,15 @@ from CTFLib.Utils import *
 
 
 ```
+
+
+---
+## Setup For Mac
+> 未完成
+
+### SageMath
+
+把類似 `/Applications/SageMath-10-2.app/Contents/Frameworks/Sage.framework/Versions/10.2/local/var/lib/sage/venv-python3.11.1/lib/python3.11/site-packages` 的 Path 加到 `PYTHONPATH` 中
+
+
+

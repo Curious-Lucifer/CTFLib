@@ -3,7 +3,7 @@ import tempfile
 import subprocess
 from pathlib import Path
 
-from ..Utils.tools import check_command, check_directory, info, success
+from ..Utils import check_command, check_directory, info, success
 from ..config import get_settings
 
 

@@ -1,8 +1,70 @@
 from functools import reduce
 from typing import Callable
 
-from ..Utils.tools import trange
+from Crypto.Util.number import bytes_to_long, long_to_bytes
+from sage.all import var, GF, PolynomialRing
+
+from ..Utils import trange, info
 from .utils import xor
+
+
+class PrependOracleManager:
+    '''
+    ### Example
+
+    ```py
+
+    ```
+    '''
+
+    def __init__(self, oracle: Callable[[bytes], bytes]):
+        self._oracle = oracle
+
+    def _get_correct_cipher(self):
+        info('Prepend Oracle Manager : Getting correct cipher')
+        self._correct_ciphers = [self._oracle(b'a' * i) for i in range(16)]
+
+    def _get_secret_length(self):
+        if not hasattr(self, '_correct_ciphers'):
+            raise ValueError('`_correct_ciphers` undefined')
+
+        min_length = len(self._correct_ciphers[0])
+        for i in range(16):
+            if len(self._correct_ciphers[i]) > min_length:
+                self._secret_length = min_length - i
+                break
+            if i == 15:
+                self._secret_length = min_length - 16
+
+    def _get_secret(self):
+        if not hasattr(self, '_correct_ciphers'):
+            raise ValueError('`_correct_ciphers` undefined')
+        if not hasattr(self, '_secret_length'):
+            raise ValueError('`_secret_lengths` undefined')
+
+        secret = b''
+        prefix = b'a' * 15
+        info('Prepend Oracle Manager : Getting secret')
+        for i in trange(self._secret_length, leave=False):
+            correct_cipher_block = self._correct_ciphers[(-i - 1) % 16][(i // 16) * 16: (i // 16 + 1) * 16]
+            for j in range(256):
+                current_cipher_block = self._oracle(prefix + bytes([j]))[:16]
+                if current_cipher_block == correct_cipher_block:
+                    secret += bytes([j])
+                    prefix = prefix[1:] + bytes([j])
+                    break
+                if j == 255:
+                    raise ValueError('something went wrong')
+        self._secret = secret
+
+    def attack(self):
+        if not hasattr(self, '_correct_ciphers'):
+            self._get_correct_cipher()
+        if not hasattr(self, '_secret_length'):
+            self._get_secret_length()
+        if not hasattr(self, '_secret'):
+            self._get_secret()
+        return self._secret
 
 
 def padding_oracle_attack(pre_cipher_block: bytes, current_cipher_block: bytes, oracle: Callable[[bytes], bool], length: int = 16):
@@ -80,8 +142,6 @@ class GCM_Forbidden_Attack_Manager:
         cipher_list: list[bytes] | None = None, 
         authtag_list: list[bytes] | None = None
     ):
-        from sage.all import var, GF, PolynomialRing
-
         self._AAD_list: list[bytes] = AAD_list or []
         self._cipher_list: list[bytes] = cipher_list or []
         self._authtag_list: list[bytes] = authtag_list or []
@@ -104,7 +164,6 @@ class GCM_Forbidden_Attack_Manager:
 
 
     def _bytes2polynomial(self, s: bytes):
-        from Crypto.Util.number import bytes_to_long
 
         assert len(s) == 16
 
@@ -115,8 +174,6 @@ class GCM_Forbidden_Attack_Manager:
 
 
     def _polynomial2bytes(self, poly):
-        from Crypto.Util.number import long_to_bytes
-
         bin_l = ['0'] * 128
 
         for key in poly.polynomial().dict().keys():
@@ -126,8 +183,6 @@ class GCM_Forbidden_Attack_Manager:
 
 
     def _merge_ADD_cipher(self, AAD: bytes, cipher: bytes):
-        from Crypto.Util.number import long_to_bytes
-
         payload = AAD
         if (len(payload) % 16) != 0:
             payload += b'\0' * (16 - len(payload) % 16)

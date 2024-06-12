@@ -46,7 +46,7 @@ tools_setup() {
 
 
 crypto_setup() {
-    pip3 install pycryptodome
+    pip3 install pycryptodome gmpy2
     sudo apt install sagemath
 }
 

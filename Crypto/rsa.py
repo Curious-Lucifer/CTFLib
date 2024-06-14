@@ -25,7 +25,7 @@ def factordb(n: int, mode: str = 'mul'):
         factors = [[int(factor)] * power for factor, power in resp.json()['factors']]
         factors = sum(factors, [])
     elif mode == 'pow':
-        factors = [[int(factor), power] for factor, power in resp.json()['factors']]
+        factors = [(int(factor), power) for factor, power in resp.json()['factors']]
 
     return factors
 

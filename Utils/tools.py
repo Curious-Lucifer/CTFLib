@@ -1,8 +1,21 @@
+import math
 import shutil
 from pathlib import Path
 from typing import Sequence, Any
 
 from tqdm import trange, tqdm
+
+
+def order_of_magnitude(num: int) -> int:
+    '''
+    ### Example
+
+    ```py
+
+    ```
+    '''
+    
+    return round(math.log10(num))
 
 
 def all_index(seq: Sequence, element: Any) -> list[int]:

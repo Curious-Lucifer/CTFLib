@@ -1,4 +1,4 @@
-from pwn import remote, process
+from pwn import remote, process, context
 
 
 def local(binary: str | list[str], libc: str | None = None, env: dict[str, str] | None = None):
@@ -20,7 +20,7 @@ def local(binary: str | list[str], libc: str | None = None, env: dict[str, str] 
     return process(binary, env=env)
 
 
-def nc(cmd: str):
+def nc(cmd: str, verbose: bool = True):
     '''
     ### Example
 
@@ -32,6 +32,11 @@ def nc(cmd: str):
     r = nc('127.0.0.1 20000')
     ```
     '''
+
+    if verbose:
+        context.log_level = 20
+    else:
+        context.log_level = 'error'
 
     server, port = cmd.removeprefix('nc ').split()
     return remote(server, int(port))

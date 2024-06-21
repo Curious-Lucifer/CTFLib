@@ -1,7 +1,7 @@
 from pwn import remote, process, context
 
 
-def local(binary: str | list[str], libc: str | None = None, env: dict[str, str] | None = None):
+def local(binary: str | list[str], libc: str | None = None, env: dict[str, str] | None = None, verbose: bool = True):
     '''
     ### Example
 
@@ -13,6 +13,11 @@ def local(binary: str | list[str], libc: str | None = None, env: dict[str, str] 
     r = local('./binary', './libc.so.6')
     ```
     '''
+
+    if verbose:
+        context.log_level = 20
+    else:
+        context.log_level = 'error'
 
     env = env or {}
     if libc:

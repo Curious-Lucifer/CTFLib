@@ -29,10 +29,10 @@ tools_setup() {
     # Tools
 
     ## fastcoll
-    sudo apt install g++ libboost-filesystem-dev libboost-program-options-dev libgmp-dev
+    sudo apt install -y g++ libboost-filesystem-dev libboost-program-options-dev libgmp-dev
 
     ## flatter
-    sudo apt install sagemath tmux libboost-filesystem-dev libboost-program-options-dev libgmp-dev
+    sudo apt install -y sagemath tmux libboost-filesystem-dev libboost-program-options-dev libgmp-dev libeigen3-dev
     git clone https://github.com/keeganryan/flatter.git
     mkdir -p flatter/build
     cd flatter/build
@@ -47,12 +47,12 @@ tools_setup() {
 
 crypto_setup() {
     pip3 install pycryptodome gmpy2 beautifulsoup4
-    sudo apt install sagemath
+    sudo apt install -y sagemath
 }
 
 
 command_setup() {
-    sudo apt install musl-tools
+    sudo apt install -y musl-tools
     pip3 install docker
 
     if [ -n "$ZSH_VERSION" ]; then
